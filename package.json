@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "start": "react-scripts start",
     "predeoply": "npm run build",
-    "deploy": "gh-pages -d dit"
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
