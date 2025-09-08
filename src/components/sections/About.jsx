@@ -2,8 +2,8 @@ import { RevealOnScroll } from "../RevealOnScroll";
 
 export const About = () => {
 
-    const frontendSkills = ["React", "Kotlin", "Swift", "TailwindCSS"];
-    const backendSkills = ["PHP", "Python", "C", "Java", "MySql"];
+    const frontendSkills = ["React", "Kotlin", "Swift", "TailwindCSS", "HTML", "JavaScript"];
+    const backendSkills = ["PHP", "Python", "C", "Java", "MySql", "Firebase", "MongoDB"];
 
     return <section id="about" className="min-h-screen flex items-center justify-center py-20">
         <RevealOnScroll>
@@ -15,7 +15,7 @@ export const About = () => {
 
             <div className="glass rounded-xl p-8 border-white/10 border hover:-translate-y-1 transition-all">
                 <p className="text-gray-300 mb-6">
-                    Lorem ipsum dolor, sit amet consectetur adipisicing elit. Accusamus itaque, quisquam quaerat eveniet, dolo
+                    I enjoy tackling challenges across multiple programming environments. My toolkit includes Java, Python, JavaScript, HTML, CSS, Kotlin, Swift, C++, and C#. Beyond coding, I bring strengths in leadership, problem-solving, and building bridges between business and technology. Whether it’s debugging complex code or organizing guest lectures with industry leaders, I combine technical know-how with communication and collaboration.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

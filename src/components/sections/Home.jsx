@@ -9,7 +9,7 @@ export const Home = () => {
         </h1>
 
         <p className="text-gray-400 text-md mb-8 max-w-lg mx-auto">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Dicta reiciendis tenetur autem, error quas vel hic mollitia aperiam veritatis officia nam odit enim ad totam dignissimos ab quis harum Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime, dolorum. Eveniet commodi dolore nulla ipsam provident culpa nisi tempora, accusamus eius, cumque blanditiis. Sequi quodtotam architecto provident repudiandae dicta?
+          Hi, I’m Jakub Kielczewski — a Computer Science major at Indiana University passionate about blending technology, business, and creativity. From building apps and AI solutions to leading student organizations, I thrive on turning ideas into real-world impact. Outside of the classroom, you’ll find me training in martial arts, exploring the outdoors, or mentoring others through leadership roles.
         </p>
         
         <div className="flex justify-center space-x-4 ">
