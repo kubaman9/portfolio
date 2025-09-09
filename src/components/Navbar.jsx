@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 
 export const Navbar = ( {menuLoaded, setMenuLoaded} ) => {
-
-    useEffect(()=> {
+    
+    useEffect(() => {
         document.body.style.overflow = menuLoaded ? "hidden" : "";
     }, [menuLoaded]);
 
@@ -19,7 +19,7 @@ export const Navbar = ( {menuLoaded, setMenuLoaded} ) => {
                         &#9776;
                     </div>
 
-                    <div className="hidden md:flex items-center space-x-4">
+                    <div className="hidden md:flex items-center space-x-4 z-50">
                         <a href="#home" className='text-gray-300 hover:text-white transition-colors ${ menuOpen ? "opacity-100 translate-y-0" : "opacity-0 tanslate-y-5"}'>
                             Home
                         </a>

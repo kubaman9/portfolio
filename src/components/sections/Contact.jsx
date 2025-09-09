@@ -13,7 +13,7 @@ export const Contact = () => {
     e.preventDefault(); // fixed
 
     emailjs
-      .sendForm(import.meta.env.VITE_SERVICE_ID, import.meta.env.VITE_TEMPLATE_ID, e.target, import.meta.env.VITE_ACCOUNT_ID)
+      .sendForm("service_fersdcf", 'template_uz4tgdj', e.target, 'EiJleWTavSt29u8Do')
       .then(() => {
         alert("Message sent!");
         setFormData({ name: "", email: "", message: "" });
