@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import "./index.css";
 import { LoadingScreen } from './components/LoadingScreen';
+import { ScrollProgress } from './components/ScrollProgress';
 import { Navbar } from './components/Navbar';
 import { MobileMenu } from './components/MobileMenu';
 import { Home } from './components/sections/Home';
@@ -22,6 +23,7 @@ function App() {
 
             <div className={`crt min-h-screen w-full transition-opacity duration-700 ${isLoaded ? "opacity-100" : "opacity-0"}`}>
 
+                <ScrollProgress />
                 <Navbar menuLoaded={menuLoaded} setMenuLoaded={setMenuLoaded}/>
                 <MobileMenu menuLoaded={menuLoaded} setMenuLoaded={setMenuLoaded}/>
                 <Home />

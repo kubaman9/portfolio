@@ -1,7 +1,26 @@
-
 import { useEffect, useRef } from "react";
 
-export const RevealOnScroll = ({ children }) => {
+const variantClass = {
+  fade: "reveal",
+  stagger: "reveal-stagger",
+  scan: "reveal-scan",
+};
+
+/**
+ * Scroll-triggered reveal.
+ * variant="fade"    fade + slide up (default)
+ * variant="stagger" cascades direct children in one by one, like terminal output printing
+ * variant="scan"    text wipes in left-to-right, like a line being typed
+ */
+export const RevealOnScroll = ({
+  children,
+  variant = "fade",
+  delay = 0,
+  className = "",
+  style,
+  as,
+}) => {
+  const Tag = as || "div";
   const ref = useRef(null);
 
   useEffect(() => {
@@ -15,7 +34,7 @@ export const RevealOnScroll = ({ children }) => {
           observer.unobserve(el);
         }
       },
-      { threshold: 0.2, rootMargin: "0px 0px -50px 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -50px 0px" }
     );
 
     observer.observe(el);
@@ -23,8 +42,12 @@ export const RevealOnScroll = ({ children }) => {
   }, []);
 
   return (
-    <div ref={ref} className="reveal">
+    <Tag
+      ref={ref}
+      className={`${variantClass[variant] || "reveal"} ${className}`}
+      style={delay ? { ...style, transitionDelay: `${delay}ms` } : style}
+    >
       {children}
-    </div>
+    </Tag>
   );
 };

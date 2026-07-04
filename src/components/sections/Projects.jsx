@@ -87,7 +87,7 @@ export const Projects = () => {
                 <div className="max-w-5xl mx-auto px-4 w-full">
                     <SectionPrompt path="~/projects" command="ls --featured" />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+                    <RevealOnScroll variant="stagger" className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
                         {featured.map((project) => (
                             <div
                                 key={project.name}
@@ -124,7 +124,7 @@ export const Projects = () => {
                                 </div>
                             </div>
                         ))}
-                    </div>
+                    </RevealOnScroll>
 
                     <SectionPrompt path="~/projects" command="ls -la ~/github --sort=year" />
 
@@ -138,7 +138,7 @@ export const Projects = () => {
 
                         <div className="p-5 sm:p-6 overflow-x-auto">
                             <table className="w-full text-xs sm:text-sm whitespace-nowrap">
-                                <tbody>
+                                <RevealOnScroll as="tbody" variant="stagger">
                                     {allRepos.map((repo) => (
                                         <tr key={repo.name} className="group">
                                             <td className="term-comment pr-4 py-1.5">drwxr-xr-x</td>
@@ -156,7 +156,7 @@ export const Projects = () => {
                                             <td className="term-comment py-1.5">{repo.lang}</td>
                                         </tr>
                                     ))}
-                                </tbody>
+                                </RevealOnScroll>
                             </table>
 
                             <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--term-border)" }}>

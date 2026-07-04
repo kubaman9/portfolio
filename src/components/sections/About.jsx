@@ -32,25 +32,29 @@ export const About = () => {
 
                             <div className="mb-8">
                                 <Prompt path="~/about" command="ls skills/languages/" className="mb-3" />
-                                <div className="flex flex-wrap gap-2">
+                                <RevealOnScroll variant="stagger" className="flex flex-wrap gap-2">
                                     {languages.map((tech) => (
                                         <span key={tech} className="term-tag">{tech}</span>
                                     ))}
-                                </div>
+                                </RevealOnScroll>
                             </div>
 
                             <div className="mb-8">
                                 <Prompt path="~/about" command="ls skills/tools/" className="mb-3" />
-                                <div className="flex flex-wrap gap-2">
+                                <RevealOnScroll variant="stagger" className="flex flex-wrap gap-2">
                                     {toolsAndFrameworks.map((tech) => (
                                         <span key={tech} className="term-tag">{tech}</span>
                                     ))}
-                                </div>
+                                </RevealOnScroll>
                             </div>
 
                             <div className="mb-8">
                                 <Prompt path="~/about" command="cat education.log" className="mb-3" />
-                                <div className="term-output space-y-2 pl-4" style={{ borderLeft: "2px solid var(--term-border)" }}>
+                                <RevealOnScroll
+                                    variant="stagger"
+                                    className="term-output space-y-2 pl-4"
+                                    style={{ borderLeft: "2px solid var(--term-border)" }}
+                                >
                                     <p>
                                         <span style={{ color: "var(--term-green)" }}>[2023–2027]</span>{" "}
                                         <strong>B.S. Computer Science, Minor in Business</strong> — Indiana University,
@@ -59,12 +63,16 @@ export const About = () => {
                                     <p className="term-comment">
                                         coursework: discrete-structures software-systems mobile-app-development
                                     </p>
-                                </div>
+                                </RevealOnScroll>
                             </div>
 
                             <div>
                                 <Prompt path="~/about" command="cat leadership.log" className="mb-3" />
-                                <div className="term-output space-y-2 pl-4" style={{ borderLeft: "2px solid var(--term-border)" }}>
+                                <RevealOnScroll
+                                    variant="stagger"
+                                    className="term-output space-y-2 pl-4"
+                                    style={{ borderLeft: "2px solid var(--term-border)" }}
+                                >
                                     <p>
                                         <span style={{ color: "var(--term-green)" }}>[2024–now]</span>{" "}
                                         <strong>Vice President — AI in Business Club, IU.</strong> Organizing guest
@@ -80,7 +88,7 @@ export const About = () => {
                                         <span style={{ color: "var(--term-green)" }}>[ongoing]</span>{" "}
                                         <strong>Alpha Sigma Phi.</strong> Helped raise $5,000 in three weeks for RAINN.
                                     </p>
-                                </div>
+                                </RevealOnScroll>
                             </div>
                         </div>
                     </div>

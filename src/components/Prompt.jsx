@@ -1,3 +1,5 @@
+import { RevealOnScroll } from "./RevealOnScroll";
+
 /** A shell prompt line: jakub@iu:~$ <command> */
 export const Prompt = ({ path = "~", command, className = "" }) => (
   <p className={`text-sm sm:text-base ${className}`}>
@@ -9,9 +11,11 @@ export const Prompt = ({ path = "~", command, className = "" }) => (
   </p>
 );
 
-/** Section heading rendered as a typed command */
+/** Section heading rendered as a typed command that wipes in on scroll */
 export const SectionPrompt = ({ path = "~", command }) => (
   <div className="mb-8">
-    <Prompt path={path} command={command} className="text-lg sm:text-xl font-bold term-glow" />
+    <RevealOnScroll variant="scan">
+      <Prompt path={path} command={command} className="text-lg sm:text-xl font-bold term-glow" />
+    </RevealOnScroll>
   </div>
 );

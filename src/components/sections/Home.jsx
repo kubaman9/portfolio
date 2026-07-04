@@ -66,7 +66,7 @@ export const Home = () => {
             <TypeWriter />
           </p>
 
-          <div className="text-sm sm:text-base space-y-1 mb-10 term-output">
+          <RevealOnScroll variant="stagger" className="text-sm sm:text-base space-y-1 mb-10 term-output">
             <p>
               <span className="term-comment">&gt; </span>
               I'm <span style={{ color: "var(--term-green)" }}>Jakub (Kuba) Kielczewski</span> — a Computer
@@ -81,16 +81,16 @@ export const Home = () => {
               <span className="term-comment">&gt; </span>
               Off the keyboard: teaching martial arts, exploring outdoors, mentoring.
             </p>
-          </div>
+          </RevealOnScroll>
 
-          <div className="flex flex-wrap gap-4">
+          <RevealOnScroll variant="stagger" className="flex flex-wrap gap-4">
             <a href="#projects" className="term-btn term-btn-solid">
               ./view_projects.sh
             </a>
             <a href="#contact" className="term-btn">
               ./contact_me.sh
             </a>
-          </div>
+          </RevealOnScroll>
         </div>
       </RevealOnScroll>
     </section>

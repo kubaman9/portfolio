@@ -42,7 +42,8 @@ export const Contact = () => {
                 <a href="mailto:jkielcz@iu.edu" className="term-link">jkielcz@iu.edu</a>.
               </p>
 
-              <form className="space-y-5" onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
+              <RevealOnScroll variant="stagger" className="space-y-5">
                 <div>
                   <label htmlFor="name" className="block text-sm mb-1">
                     <span className="prompt-symbol">$ </span>
@@ -112,6 +113,7 @@ export const Contact = () => {
                     [FAIL] Something went wrong — try again or email me directly.
                   </p>
                 )}
+              </RevealOnScroll>
               </form>
             </div>
           </div>
