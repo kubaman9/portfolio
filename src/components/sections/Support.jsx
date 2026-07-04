@@ -28,7 +28,7 @@ function MessageBubble({ role, children }) {
 export const Support = ({ compact = false }) => {
   const [messages, setMessages] = useState([
     // You can keep a greeting in UI, but we’ll drop leading model lines from the request.
-    { id: 1, role: "model", text: "Hi! How can I get you to hire Jakub?" },
+    { id: 1, role: "model", text: "Hi! I'm Jakub's AI assistant — ask me anything about his skills, projects, or experience." },
   ]);
   const [input, setInput] = useState("");
   const endRef = useRef(null);
@@ -103,7 +103,9 @@ export const Support = ({ compact = false }) => {
           headers: {
             "Content-Type": "application/json",
             // Prefer env var; if you were hardcoding before, you can keep that instead.
-            "x-goog-api-key": "AIzaSyCNPoajD0LtZ4XwRjaEXgihbX6lnZ7MS_o",
+            "x-goog-api-key":
+              import.meta.env.VITE_GEMINI_API_KEY ||
+              "AIzaSyCNPoajD0LtZ4XwRjaEXgihbX6lnZ7MS_o",
           },
           body: JSON.stringify({ contents: mapped }),
         }
@@ -134,7 +136,7 @@ export const Support = ({ compact = false }) => {
 
   return (
     <section
-      id="about"
+      id="chat"
       className={
         compact
           ? "h-full flex flex-col border-none" // fill modal panel

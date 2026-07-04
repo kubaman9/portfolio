@@ -1,5 +1,5 @@
 // ChatBot.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Support } from "./Support"; // adjust path if needed
 
@@ -97,12 +97,10 @@ export default function ChatBot({ title = "Chatbot", initialOpen = false }) {
   <div className="w-full px-4">
     {/* Header area (absolute elements live here) */}
     <div className="relative pt-2">
-      {/* Title (same styling, same positions) */}
-      <div className="absolute top-4 left-4 px-4 text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
-        Chatbot
-      </div>
-      <div className="absolute top-4 left-36 px-0 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-400">
-        .AI
+      {/* Title */}
+      <div className="absolute top-4 left-4 px-4 text-3xl font-bold">
+        <span className="bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">Jakub</span>
+        <span className="bg-gradient-to-r from-blue-500 to-purple-400 bg-clip-text text-transparent">.AI</span>
       </div>
 
       {/* Close button (same styling/position) */}
