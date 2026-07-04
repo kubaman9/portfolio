@@ -1,7 +1,13 @@
 import { useEffect } from "react";
 
+const links = [
+  { href: "#home", label: "cd ~/home" },
+  { href: "#about", label: "cd ~/about" },
+  { href: "#projects", label: "cd ~/projects" },
+  { href: "#contact", label: "cd ~/contact" },
+];
+
 export const MobileMenu = ({ menuLoaded, setMenuLoaded }) => {
-  // Optional: lock scroll from here too (safe even if Navbar does it)
   useEffect(() => {
     document.body.style.overflow = menuLoaded ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -9,52 +15,31 @@ export const MobileMenu = ({ menuLoaded, setMenuLoaded }) => {
 
   return (
     <div
-      className={`fixed top-0 left-0 w-full bg-[rgba(10,10,10,0.8)] z-[60] flex flex-col items-center justify-center transition-all duration-300 ease-in-out
+      className={`fixed top-0 left-0 w-full z-[60] flex flex-col items-center justify-center transition-all duration-300 ease-in-out
         ${menuLoaded ? "h-screen opacity-100 pointer-events-auto" : "h-0 opacity-0 pointer-events-none"}`}
+      style={{ background: "rgba(10, 15, 11, 0.96)" }}
     >
       <button
         onClick={() => setMenuLoaded(false)}
-        className="absolute top-6 right-5 text-white text-3xl focus:outline-none cursor-pointer"
+        className="absolute top-5 right-5 text-2xl focus:outline-none cursor-pointer"
+        style={{ color: "var(--term-green)" }}
         aria-label="Close Menu"
       >
-        &times;
+        [x]
       </button>
 
-      <a
-        href="#home"
-        onClick={() => setMenuLoaded(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-          ${menuLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}`}
-      >
-        Home
-      </a>
-
-      <a
-        href="#about"
-        onClick={() => setMenuLoaded(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-          ${menuLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}`}
-      >
-        About
-      </a>
-
-      <a
-        href="#projects"
-        onClick={() => setMenuLoaded(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-          ${menuLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}`}
-      >
-        Projects
-      </a>
-
-      <a
-        href="#contact"
-        onClick={() => setMenuLoaded(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-          ${menuLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}`}
-      >
-        Contact
-      </a>
+      {links.map((link) => (
+        <a
+          key={link.href}
+          href={link.href}
+          onClick={() => setMenuLoaded(false)}
+          className={`text-xl font-semibold my-4 transform transition-transform duration-300
+            ${menuLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}`}
+        >
+          <span className="prompt-symbol">$ </span>
+          <span style={{ color: "var(--term-green)" }}>{link.label}</span>
+        </a>
+      ))}
     </div>
   );
 };

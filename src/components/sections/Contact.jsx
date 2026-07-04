@@ -1,81 +1,120 @@
 import { useState } from "react";
-// If RevealOnScroll is a **named** export: 
 import { RevealOnScroll } from "../RevealOnScroll";
-// If it's a **default** export, use: 
-// import RevealOnScroll from "../RevealOnScroll";
-
+import { SectionPrompt } from "../Prompt";
 import emailjs from "@emailjs/browser";
 
 export const Contact = () => {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
 
   const handleSubmit = (e) => {
-    e.preventDefault(); // fixed
+    e.preventDefault();
+    setStatus("sending");
 
     emailjs
       .sendForm("service_fersdcf", 'template_uz4tgdj', e.target, 'EiJleWTavSt29u8Do')
       .then(() => {
-        alert("Message sent!");
+        setStatus("sent");
         setFormData({ name: "", email: "", message: "" });
       })
-      .catch(() => alert("Oops, something went wrong. Try again."));
+      .catch(() => setStatus("error"));
   };
 
   return (
-    <section id="contact" className="min-h-screen flex items-center justify-center py-20">
+    <section id="contact" className="min-h-screen flex items-center justify-center py-24">
       <RevealOnScroll>
-        <div className="px-4 w-full max-w-xl">
-          <h2 className="text-3xl font-bold mb-8 bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent text-center">
-            Get In Touch
-          </h2>
+        <div className="px-4 w-full max-w-xl mx-auto">
+          <SectionPrompt path="~/contact" command="./send_message.sh" />
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="relative">
-              <input
-                value={formData.name}
-                type="text"
-                id="name"
-                name="name"
-                required
-                className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white transition focus:outline-none focus:border-blue-500 focus:bg-blue-500/5"
-                placeholder="Name..."
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          <div className="term-window">
+            <div className="term-titlebar">
+              <span className="term-dot" style={{ background: "#f87171" }} />
+              <span className="term-dot" style={{ background: "#fbbf24" }} />
+              <span className="term-dot" style={{ background: "#4ade80" }} />
+              <span className="ml-2">send_message.sh — interactive</span>
             </div>
 
-            <div className="relative">
-              <input
-                value={formData.email}
-                type="email"
-                id="email"
-                name="email"
-                required
-                className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white transition focus:outline-none focus:border-blue-500 focus:bg-blue-500/5"
-                placeholder="jakub@kielczewski.com"
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}  // fixed
-              />
-            </div>
+            <div className="p-6 sm:p-8">
+              <p className="term-output text-sm mb-6">
+                <span className="term-comment"># </span>
+                Interested in working together, or just want to say hi? Fill in the fields below,
+                or reach me directly at{" "}
+                <a href="mailto:jkielcz@iu.edu" className="term-link">jkielcz@iu.edu</a>.
+              </p>
 
-            <div>
-              <textarea
-                value={formData.message}
-                name="message"
-                id="message"
-                required
-                rows={5}
-                className="w-full bg-white/5 border border-white/10 rounded px-4 py-3 text-white transition focus:outline-none focus:border-blue-500"
-                placeholder="Message..."
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })} // fixed
-              ></textarea>
-            </div>
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                <div>
+                  <label htmlFor="name" className="block text-sm mb-1">
+                    <span className="prompt-symbol">$ </span>
+                    <span className="prompt-user">enter_name:</span>
+                  </label>
+                  <input
+                    value={formData.name}
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    className="term-input"
+                    placeholder="Jane Recruiter"
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
 
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white py-3 px-6 rounded font-medium transition relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgba(59,130,246,0.2)]"
-            >
-              Send Message
-            </button>
-          </form>
+                <div>
+                  <label htmlFor="email" className="block text-sm mb-1">
+                    <span className="prompt-symbol">$ </span>
+                    <span className="prompt-user">enter_email:</span>
+                  </label>
+                  <input
+                    value={formData.email}
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    className="term-input"
+                    placeholder="you@example.com"
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="block text-sm mb-1">
+                    <span className="prompt-symbol">$ </span>
+                    <span className="prompt-user">enter_message:</span>
+                  </label>
+                  <textarea
+                    value={formData.message}
+                    name="message"
+                    id="message"
+                    required
+                    rows={5}
+                    className="term-input"
+                    placeholder="We'd love to interview you..."
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={status === "sending"}
+                  className="term-btn term-btn-solid w-full disabled:opacity-60"
+                >
+                  {status === "sending" ? "sending ▓▓▓░░░ ..." : "./send_message.sh --execute"}
+                </button>
+
+                {status === "sent" && (
+                  <p className="text-sm" role="status" style={{ color: "var(--term-green)" }}>
+                    [ OK ] Message sent — exit code 0. I'll get back to you soon!
+                  </p>
+                )}
+                {status === "error" && (
+                  <p className="text-sm" role="alert" style={{ color: "#f87171" }}>
+                    [FAIL] Something went wrong — try again or email me directly.
+                  </p>
+                )}
+              </form>
+            </div>
+          </div>
         </div>
       </RevealOnScroll>
     </section>

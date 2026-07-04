@@ -1,12 +1,33 @@
-# React + Vite
+# Jakub.AI — Personal Portfolio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Personal portfolio site for **Jakub (Kuba) Kielczewski** — Computer Science senior at
+Indiana University (Luddy School), graduating May 2027.
 
-Currently, two official plugins are available:
+**Live site:** https://kubaman9.github.io/portfolio
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## Expanding the ESLint configuration
+- Single-page React app with scroll-reveal animations
+- About, Projects, and Contact sections
+- Contact form powered by EmailJS
+- Built-in AI chatbot (Google Gemini) that answers recruiter questions about me
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+
+- [React 19](https://react.dev) + [Vite](https://vite.dev)
+- [TailwindCSS 4](https://tailwindcss.com)
+- [EmailJS](https://www.emailjs.com/) for the contact form
+- Google Gemini API for the chatbot
+
+## Development
+
+```bash
+npm install
+npm run dev      # local dev server
+npm run build    # production build
+npm run lint     # eslint
+npm run deploy   # publish to GitHub Pages
+```
+
+To use your own Gemini API key for the chatbot, set `VITE_GEMINI_API_KEY` in a `.env`
+file at the project root.
