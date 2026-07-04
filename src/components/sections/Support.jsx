@@ -11,15 +11,23 @@ function MessageBubble({ role, children }) {
 
   const anim = mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2";
 
-  const base = "rounded-2xl px-3 py-2 text-sm transition-all duration-300 ease-out " + anim;
+  const base = "rounded px-3 py-2 text-sm transition-all duration-300 ease-out border " + anim;
 
   const original =
     role === "user"
-      ? "ml-auto max-w-fit text-right bg-blue-500/20 text-blue-100"
-      : "mr-auto max-w-fit text-left bg-white/10 text-gray-100";
+      ? "ml-auto max-w-fit text-right"
+      : "mr-auto max-w-fit text-left";
+
+  const style =
+    role === "user"
+      ? { background: "rgba(251, 191, 36, 0.08)", borderColor: "rgba(251, 191, 36, 0.3)", color: "#fde68a" }
+      : { background: "rgba(74, 222, 128, 0.07)", borderColor: "rgba(74, 222, 128, 0.25)", color: "var(--term-text)" };
+
+  const prefix = role === "user" ? "$ " : "> ";
 
   return (
-    <div className={`${base} ${original}`} tabIndex={0}>
+    <div className={`${base} ${original}`} style={style} tabIndex={0}>
+      <span className="term-comment">{prefix}</span>
       {children}
     </div>
   );
@@ -143,26 +151,13 @@ export const Support = ({ compact = false }) => {
           : "min-h-screen flex items-center justify-center py-20"
       }
     >
-      <div className="relative w-full max-w-2xl mx-auto px-4 glass rounded-xl border border-white/10">
-        {/* Header
-        <div className="absolute top-4 left-4 px-4 text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
-          Chatbot
-        </div>  
-        <div className="absolute top-4 left-36 px-0 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-400">
-          .AI
-        </div>
-        <button
-          type="button"
-          aria-label="Toggle chatbot"
-          className="absolute top-4 right-4 bg-blue-500 text-white py-2 px-4 rounded font-medium hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          ▼
-        </button> */}
-
-        {/* Content */}
-        <div className="pt-16 flex flex-col gap-4 ">
+      <div className={`relative w-full max-w-2xl mx-auto px-4 ${compact ? "h-full py-4" : ""}`}>
+        <div className={`flex flex-col gap-3 ${compact ? "h-full" : ""}`}>
           {/* Messages area */}
-          <div className="h-96 overflow-y-auto rounded-lg border border-blue-500/30 p-4 space-y-3 bg-black/20">
+          <div
+            className={`${compact ? "flex-1 min-h-0" : "h-96"} overflow-y-auto rounded p-4 space-y-3`}
+            style={{ border: "1px solid var(--term-border)", background: "rgba(0, 0, 0, 0.35)" }}
+          >
             {messages.map((m) => (
               <MessageBubble key={m.id} role={m.role === "user" ? "user" : "model"}>
                 {m.text}
@@ -172,22 +167,22 @@ export const Support = ({ compact = false }) => {
           </div>
 
           {/* Input row */}
-          <form onSubmit={handleSend} className="flex items-center gap-2">
+          <form onSubmit={handleSend} className="flex items-center gap-2 pb-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 bg-neutral-900/70 text-gray-100 placeholder-gray-400 rounded-lg px-3 py-2 border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="ask about jakub..."
+              className="term-input flex-1"
               aria-label="Message input"
               autoComplete="off"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="term-btn term-btn-solid disabled:opacity-50 !py-2.5"
             >
-              Send
+              ↵
             </button>
           </form>
         </div>

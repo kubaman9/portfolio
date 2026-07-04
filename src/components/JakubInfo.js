@@ -11,7 +11,11 @@ CANDIDATE FACTS (authoritative)
 • Roles targeted: full-time Software Engineering roles starting after graduation (2027), plus SWE / AI-adjacent internships in the meantime. (Motivation: efficiency, innovation, teamwork.)
 
 PROJECTS (public on GitHub: kubaman9)
-• Jakub.AI Portfolio — this website: React + Vite + TailwindCSS single-page app with an AI chatbot (Gemini API) and EmailJS contact form.
+• IronLog + IronLogAPI (2026) — full-stack lift-tracking web app: TypeScript frontend backed by a custom REST API he built from scratch.
+• WatchNext (2026) — JavaScript web app for tracking movies/shows and deciding what to watch next; his latest active project.
+• MMA Predictor (2026) — Python project predicting MMA fight outcomes, combining his martial arts background with data-driven prediction.
+• AI in Business Club Website (2025) — official website he built and maintains for the club where he is VP.
+• Jakub.AI Portfolio — this website: terminal-themed React + Vite + TailwindCSS single-page app with an AI chatbot (Gemini API) and EmailJS contact form.
 • ListApp — Kotlin Android list manager with local persistence and user authentication.
 • Project9Jakub — Kotlin Android cloud to-do app with email auth and cross-device sync.
 • PyTest Projects — collection of Python GUI utilities (web scraper, calculator, graph visualizer, image modifier).

@@ -1,39 +1,94 @@
+import { useEffect, useState } from "react";
 import { RevealOnScroll } from "../RevealOnScroll";
+import { Prompt } from "../Prompt";
+
+const banner = `     ██╗ █████╗ ██╗  ██╗██╗   ██╗██████╗
+     ██║██╔══██╗██║ ██╔╝██║   ██║██╔══██╗
+     ██║███████║█████╔╝ ██║   ██║██████╔╝
+██   ██║██╔══██║██╔═██╗ ██║   ██║██╔══██╗
+╚█████╔╝██║  ██║██║  ██╗╚██████╔╝██████╔╝
+ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝`;
+
+const roles = [
+  "software engineer",
+  "full-stack developer",
+  "AI builder",
+  "CS senior @ Indiana University",
+  "2nd dan black belt",
+];
+
+/** Cycling typewriter effect */
+const TypeWriter = () => {
+  const [roleIndex, setRoleIndex] = useState(0);
+  const [text, setText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = roles[roleIndex];
+    const timeout = setTimeout(() => {
+      if (!deleting) {
+        const next = current.substring(0, text.length + 1);
+        setText(next);
+        if (next === current) setTimeout(() => setDeleting(true), 1600);
+      } else {
+        const next = current.substring(0, text.length - 1);
+        setText(next);
+        if (next === "") {
+          setDeleting(false);
+          setRoleIndex((i) => (i + 1) % roles.length);
+        }
+      }
+    }, deleting ? 35 : 70);
+
+    return () => clearTimeout(timeout);
+  }, [text, deleting, roleIndex]);
+
+  return (
+    <span>
+      <span className="term-glow" style={{ color: "var(--term-green)" }}>{text}</span>
+      <span className="cursor-block ml-1" />
+    </span>
+  );
+};
 
 export const Home = () => {
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center py-20">
+    <section id="home" className="min-h-screen flex items-center justify-center py-24">
       <RevealOnScroll>
-        <div className="text-center z-10 px-4">
-          <p className="text-blue-400 font-mono text-sm mb-4 tracking-widest uppercase">
-            Software Engineer · AI Enthusiast · Leader
+        <div className="max-w-3xl mx-auto px-4 w-full">
+          <Prompt path="~" command="whoami" className="mb-6" />
+
+          <pre className="ascii-banner mb-2 term-flicker" aria-hidden="true">{banner}</pre>
+          <p className="sr-only">Jakub Kielczewski</p>
+
+          <p className="text-base sm:text-lg mb-6 mt-4">
+            <span className="term-comment"># </span>
+            <TypeWriter />
           </p>
 
-          <h1 className="text-5xl md:text-7xl font-bold md:mt-2 mb-6 leading-tight bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
-            Hi, I'm Jakub
-          </h1>
+          <div className="text-sm sm:text-base space-y-1 mb-10 term-output">
+            <p>
+              <span className="term-comment">&gt; </span>
+              I'm <span style={{ color: "var(--term-green)" }}>Jakub (Kuba) Kielczewski</span> — a Computer
+              Science senior at Indiana University, graduating May 2027.
+            </p>
+            <p>
+              <span className="term-comment">&gt; </span>
+              I build full-stack apps, AI-powered tools, and Android software — and as VP of the
+              AI in Business Club, I connect engineers with the people who need them.
+            </p>
+            <p>
+              <span className="term-comment">&gt; </span>
+              Off the keyboard: teaching martial arts, exploring outdoors, mentoring.
+            </p>
+          </div>
 
-          <p className="text-gray-400 text-md mb-8 max-w-lg mx-auto">
-            I'm Jakub (Kuba) Kielczewski — a Computer Science senior at Indiana University
-            graduating in May 2027, passionate about blending technology, business, and
-            creativity. From building apps and AI-powered tools to serving as Vice President
-            of the AI in Business Club, I thrive on turning ideas into real-world impact.
-            Outside of code, you'll find me teaching martial arts as a 2nd Dan black belt,
-            exploring the outdoors, or mentoring others through leadership roles.
-          </p>
-
-          <div className="flex justify-center space-x-4">
-            <a
-              href="#projects"
-              className="bg-blue-500 text-white py-3 px-6 rounded font-medium transition relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)]"
-            >
-              View Projects
+          <div className="flex flex-wrap gap-4">
+            <a href="#projects" className="term-btn term-btn-solid">
+              ./view_projects.sh
             </a>
-            <a
-              href="#contact"
-              className="border border-blue-500/50 text-blue-500 py-3 px-6 rounded font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:bg-blue-500 hover:text-black"
-            >
-              Contact Me
+            <a href="#contact" className="term-btn">
+              ./contact_me.sh
             </a>
           </div>
         </div>
