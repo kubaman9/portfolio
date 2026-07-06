@@ -18,9 +18,9 @@ function ChatFab({ open, onToggle }) {
                  active:scale-95 transition-all
                  focus:outline-none focus:ring-2 focus:ring-offset-2"
       style={{
-        background: "var(--term-green)",
-        color: "#04140a",
-        boxShadow: "0 0 20px rgba(74, 222, 128, 0.45)",
+        background: "var(--term-accent)",
+        color: "#051019",
+        boxShadow: "0 0 20px rgba(125, 211, 252, 0.45)",
       }}
     >
       <span aria-hidden="true">&gt;_</span>
@@ -82,6 +82,13 @@ function ChatPortal({ open, onClose, title = "Chatbot", children }) {
 export default function ChatBot({ title = "Chatbot", initialOpen = false }) {
   const [open, setOpen] = useState(initialOpen);
 
+  // Let the hero terminal's `chat` command open this panel
+  useEffect(() => {
+    const openChat = () => setOpen(true);
+    window.addEventListener("jakub:openchat", openChat);
+    return () => window.removeEventListener("jakub:openchat", openChat);
+  }, []);
+
   return (
     <>
       <ChatFab open={open} onToggle={() => setOpen((o) => !o)} />
@@ -95,7 +102,7 @@ export default function ChatBot({ title = "Chatbot", initialOpen = false }) {
         <span className="term-dot" style={{ background: "#f87171" }} />
         <span className="term-dot" style={{ background: "#fbbf24" }} />
         <span className="term-dot" style={{ background: "#4ade80" }} />
-        <span className="ml-2 font-bold" style={{ color: "var(--term-green)" }}>ask_ai.sh — gemini</span>
+        <span className="ml-2 font-bold" style={{ color: "var(--term-accent)" }}>ask_ai.sh — gemini</span>
       </div>
       <button
         onClick={() => setOpen(false)}

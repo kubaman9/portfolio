@@ -21,7 +21,7 @@ function MessageBubble({ role, children }) {
   const style =
     role === "user"
       ? { background: "rgba(251, 191, 36, 0.08)", borderColor: "rgba(251, 191, 36, 0.3)", color: "#fde68a" }
-      : { background: "rgba(74, 222, 128, 0.07)", borderColor: "rgba(74, 222, 128, 0.25)", color: "var(--term-text)" };
+      : { background: "rgba(125, 211, 252, 0.07)", borderColor: "rgba(125, 211, 252, 0.25)", color: "var(--term-text)" };
 
   const prefix = role === "user" ? "$ " : "> ";
 

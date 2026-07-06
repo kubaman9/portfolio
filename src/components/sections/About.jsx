@@ -56,7 +56,7 @@ export const About = () => {
                                     style={{ borderLeft: "2px solid var(--term-border)" }}
                                 >
                                     <p>
-                                        <span style={{ color: "var(--term-green)" }}>[2023–2027]</span>{" "}
+                                        <span style={{ color: "var(--term-accent)" }}>[2023–2027]</span>{" "}
                                         <strong>B.S. Computer Science, Minor in Business</strong> — Indiana University,
                                         Bloomington (Luddy School, Direct Admit). Expected May 2027. Merit scholarship.
                                     </p>
@@ -74,18 +74,18 @@ export const About = () => {
                                     style={{ borderLeft: "2px solid var(--term-border)" }}
                                 >
                                     <p>
-                                        <span style={{ color: "var(--term-green)" }}>[2024–now]</span>{" "}
+                                        <span style={{ color: "var(--term-accent)" }}>[2024–now]</span>{" "}
                                         <strong>Vice President — AI in Business Club, IU.</strong> Organizing guest
                                         lectures and connecting students with industry AI experts. Built the club's
                                         website.
                                     </p>
                                     <p>
-                                        <span style={{ color: "var(--term-green)" }}>[2019–now]</span>{" "}
+                                        <span style={{ color: "var(--term-accent)" }}>[2019–now]</span>{" "}
                                         <strong>Martial Arts Instructor — DK Fitness Arts.</strong> 2nd Dan black belt.
                                         Leading classes (ages 3–14) and mentoring students.
                                     </p>
                                     <p>
-                                        <span style={{ color: "var(--term-green)" }}>[ongoing]</span>{" "}
+                                        <span style={{ color: "var(--term-accent)" }}>[ongoing]</span>{" "}
                                         <strong>Alpha Sigma Phi.</strong> Helped raise $5,000 in three weeks for RAINN.
                                     </p>
                                 </RevealOnScroll>

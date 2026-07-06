@@ -104,7 +104,7 @@ export const Contact = () => {
                 </button>
 
                 {status === "sent" && (
-                  <p className="text-sm" role="status" style={{ color: "var(--term-green)" }}>
+                  <p className="text-sm" role="status" style={{ color: "var(--term-accent)" }}>
                     [ OK ] Message sent — exit code 0. I'll get back to you soon!
                   </p>
                 )}

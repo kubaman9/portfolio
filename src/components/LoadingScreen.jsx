@@ -59,8 +59,8 @@ export const LoadingScreen = ({ onComplete }) => {
           ))}
         </div>
 
-        <div className="mt-6 w-full h-[4px] rounded relative overflow-hidden" style={{ background: "rgba(74,222,128,0.12)" }}>
-          <div className="w-[20%] h-full animate-loading-bar" style={{ background: "var(--term-green)", boxShadow: "0 0 15px rgba(74,222,128,0.8)" }} />
+        <div className="mt-6 w-full h-[4px] rounded relative overflow-hidden" style={{ background: "rgba(125,211,252,0.12)" }}>
+          <div className="w-[20%] h-full animate-loading-bar" style={{ background: "var(--term-accent)", boxShadow: "0 0 15px rgba(125,211,252,0.8)" }} />
         </div>
       </div>
     </div>

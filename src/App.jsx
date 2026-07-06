@@ -3,6 +3,8 @@ import './App.css';
 import "./index.css";
 import { LoadingScreen } from './components/LoadingScreen';
 import { ScrollProgress } from './components/ScrollProgress';
+import { CursorGlow } from './components/CursorGlow';
+import { MatrixRain } from './components/MatrixRain';
 import { Navbar } from './components/Navbar';
 import { MobileMenu } from './components/MobileMenu';
 import { Home } from './components/sections/Home';
@@ -24,6 +26,8 @@ function App() {
             <div className={`crt min-h-screen w-full transition-opacity duration-700 ${isLoaded ? "opacity-100" : "opacity-0"}`}>
 
                 <ScrollProgress />
+                <CursorGlow />
+                <MatrixRain />
                 <Navbar menuLoaded={menuLoaded} setMenuLoaded={setMenuLoaded}/>
                 <MobileMenu menuLoaded={menuLoaded} setMenuLoaded={setMenuLoaded}/>
                 <Home />

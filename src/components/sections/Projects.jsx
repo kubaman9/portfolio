@@ -1,5 +1,6 @@
 import { RevealOnScroll } from "../RevealOnScroll";
 import { SectionPrompt, Prompt } from "../Prompt";
+import { TiltCard } from "../TiltCard";
 
 const featured = [
     {
@@ -89,9 +90,9 @@ export const Projects = () => {
 
                     <RevealOnScroll variant="stagger" className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
                         {featured.map((project) => (
-                            <div
+                            <TiltCard
                                 key={project.name}
-                                className="term-window transition-all hover:-translate-y-1 flex flex-col"
+                                className="term-window flex flex-col h-full"
                             >
                                 <div className="term-titlebar">
                                     <span className="term-dot" style={{ background: "#f87171" }} />
@@ -101,7 +102,7 @@ export const Projects = () => {
                                 </div>
 
                                 <div className="p-5 sm:p-6 flex flex-col flex-1 text-sm sm:text-base">
-                                    <h3 className="font-bold mb-2 term-glow" style={{ color: "var(--term-green)" }}>
+                                    <h3 className="font-bold mb-2 term-glow" style={{ color: "var(--term-accent)" }}>
                                         {project.title}
                                     </h3>
                                     <p className="term-output mb-4 flex-1 leading-relaxed">
@@ -122,7 +123,7 @@ export const Projects = () => {
                                         $ git clone {project.link.replace("https://", "")}.git
                                     </a>
                                 </div>
-                            </div>
+                            </TiltCard>
                         ))}
                     </RevealOnScroll>
 
