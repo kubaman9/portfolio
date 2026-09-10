@@ -24,10 +24,12 @@ export const About = () => {
                                 <span className="term-comment"># whoami, in more than one line</span>
                                 <br />
                                 I enjoy tackling challenges across the whole stack — from Android apps in Kotlin
-                                to full-stack web apps with custom APIs to AI-powered tools. Beyond coding, I bring
-                                strengths in leadership, problem-solving, and building bridges between business and
-                                technology: whether it's debugging complex code or organizing guest lectures with
-                                industry leaders, I combine technical know-how with communication and collaboration.
+                                to full-stack web apps with custom APIs to AI-powered tools. As a Software Developer
+                                Intern at Trim-Tex, I shipped internal tools that are used daily by real teams, from
+                                ERP-integrated dashboards to UPS API integrations. Beyond coding, I bring strengths in
+                                leadership, problem-solving, and building bridges between business and technology:
+                                whether it's debugging complex code or organizing guest lectures with industry leaders,
+                                I combine technical know-how with communication and collaboration.
                             </p>
 
                             <div className="mb-8">
@@ -57,11 +59,34 @@ export const About = () => {
                                 >
                                     <p>
                                         <span style={{ color: "var(--term-accent)" }}>[2023–2027]</span>{" "}
-                                        <strong>B.S. Computer Science, Minor in Business</strong> — Indiana University,
-                                        Bloomington (Luddy School, Direct Admit). Expected May 2027. Merit scholarship.
+                                        <strong>B.S. Computer Science (AI Specialization), Minor in Business</strong> —
+                                        Indiana University, Bloomington (Luddy School, Direct Admit). Expected May 2027.
+                                        Merit scholarship.
                                     </p>
                                     <p className="term-comment">
                                         coursework: discrete-structures software-systems mobile-app-development
+                                    </p>
+                                </RevealOnScroll>
+                            </div>
+
+                            <div className="mb-8">
+                                <Prompt path="~/about" command="cat experience.log" className="mb-3" />
+                                <RevealOnScroll
+                                    variant="stagger"
+                                    className="term-output space-y-2 pl-4"
+                                    style={{ borderLeft: "2px solid var(--term-border)" }}
+                                >
+                                    <p>
+                                        <span style={{ color: "var(--term-accent)" }}>[May 2026 – Aug 2026]</span>{" "}
+                                        <strong>Software Developer Intern — Trim-Tex</strong> (Lincolnwood, IL, on-site).
+                                        Shipped four internal tools on the IT/IS team: rebuilt the company's maintenance
+                                        system to track assets and work orders with Teams alerts, moved production
+                                        scheduling off a whiteboard onto a live drag-and-drop dashboard tied to the ERP,
+                                        built a UPS rate-quoting tool against UPS's API plus a customer-file auto-organizer,
+                                        and connected the ERP to other systems while building the company's first digital form.
+                                    </p>
+                                    <p className="term-comment">
+                                        skills: project-management software-development erp-integration rest-apis
                                     </p>
                                 </RevealOnScroll>
                             </div>

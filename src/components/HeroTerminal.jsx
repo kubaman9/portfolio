@@ -11,6 +11,7 @@ const HELP_TEXT = [
   "  ls projects       list featured projects",
   "  cd projects       jump to the projects section",
   "  cd about          jump to the about section",
+  "  experience        show internship experience",
   "  contact           jump to the contact form",
   "  chat              open the AI assistant",
   "  github            open my GitHub profile",
@@ -39,6 +40,17 @@ const runCommand = (raw) => {
       return [
         "jakub (kuba) kielczewski — CS senior @ Indiana University, grad may 2027.",
         "builds full-stack apps, AI tools & android software. VP of AI in Business Club.",
+        "ex software dev intern @ Trim-Tex (summer 2026). try 'experience' for details.",
+      ];
+    case "experience":
+    case "cat experience.log":
+      return [
+        "Software Developer Intern — Trim-Tex (May–Aug 2026, Lincolnwood, IL)",
+        "  shipped 4 internal tools on the IT/IS team:",
+        "  - rebuilt maintenance system: tracks assets + work orders, Teams alerts",
+        "  - production scheduling: whiteboard -> live drag-and-drop dashboard on the ERP",
+        "  - UPS rate-quoting tool (UPS API) + customer-file auto-organizer",
+        "  - connected the ERP to other systems, built the company's first digital form",
       ];
     case "ls":
     case "ls projects":

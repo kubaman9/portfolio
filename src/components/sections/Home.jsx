@@ -14,6 +14,7 @@ const roles = [
   "software engineer",
   "full-stack developer",
   "AI builder",
+  "ex-intern @ Trim-Tex",
   "CS senior @ Indiana University",
   "2nd dan black belt",
 ];
