@@ -59,13 +59,15 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Publish to gh-pages (bet/index.html)
+        working-directory: source
         run: |
           set -euo pipefail
+          BUILT="$(pwd)/bet/index.html"
           git fetch origin gh-pages:gh-pages
-          git worktree add ghpages gh-pages
-          mkdir -p ghpages/bet
-          cp source/bet/index.html ghpages/bet/index.html
-          cd ghpages
+          git worktree add ../ghpages gh-pages
+          mkdir -p ../ghpages/bet
+          cp "$BUILT" ../ghpages/bet/index.html
+          cd ../ghpages
           if git diff --quiet -- bet/index.html; then
             echo "gh-pages bet/index.html unchanged, skipping commit"
           else
@@ -75,13 +77,15 @@ jobs:
           fi
 
       - name: Mirror into public/bet/index.html on main
+        working-directory: source
         run: |
           set -euo pipefail
+          BUILT="$(pwd)/bet/index.html"
           git fetch origin main:main
-          git worktree add mainwt main
-          mkdir -p mainwt/public/bet
-          cp source/bet/index.html mainwt/public/bet/index.html
-          cd mainwt
+          git worktree add ../mainwt main
+          mkdir -p ../mainwt/public/bet
+          cp "$BUILT" ../mainwt/public/bet/index.html
+          cd ../mainwt
           if git diff --quiet -- public/bet/index.html; then
             echo "main public/bet/index.html unchanged, skipping commit"
           else
