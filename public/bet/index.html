@@ -15,3 +15,4 @@ document.getElementById("f").addEventListener("submit",function(ev){ev.preventDe
 open(document.getElementById("p").value).then(function(h){try{sessionStorage.setItem("bp",document.getElementById("p").value);}catch(x){}go(h);}).catch(function(){e.textContent="Wrong password";});});
 try{var s=sessionStorage.getItem("bp");if(s)open(s).then(go).catch(function(){});}catch(x){}
 })();</script></body></html>
+
