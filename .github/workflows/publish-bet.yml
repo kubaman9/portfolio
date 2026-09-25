@@ -1,0 +1,103 @@
+name: Publish betting dashboard
+
+# Staging path for the /bet betting dashboard. The daily scheduled run
+# (a restricted Routine, only able to push to claude/* branches) pushes a
+# freshly built bet/index.html to claude/bet-data. This workflow copies that
+# file onto gh-pages (so it's served at /bet/) and mirrors it into
+# public/bet/index.html on main (so a future `npm run deploy`, which rebuilds
+# dist/ from main and republishes gh-pages, does not wipe it out).
+#
+# Can also be run manually (workflow_dispatch) against any ref for testing,
+# per the build brief's "test it with workflow_dispatch before relying on it".
+
+on:
+  push:
+    branches: [claude/bet-data]
+    paths: [bet/index.html]
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Branch/ref that has the built bet/index.html to publish"
+        required: false
+        default: claude/bet-data
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-bet
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source ref (has the built bet/index.html)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.ref_name }}
+          path: source
+
+      - name: Verify the built file looks sane
+        run: |
+          set -euo pipefail
+          f=source/bet/index.html
+          test -f "$f" || { echo "::error::bet/index.html not found on the source ref"; exit 1; }
+          size=$(wc -c < "$f")
+          echo "bet/index.html is $size bytes"
+          if [ "$size" -le 20480 ]; then
+            echo "::error::bet/index.html is only $size bytes (<= 20KB) -- looks like a broken/empty build, refusing to publish"
+            exit 1
+          fi
+          grep -q 'type="password"' "$f" || { echo "::error::password form missing from bet/index.html"; exit 1; }
+          grep -q '__ARCHIVE_JSON__' "$f" && { echo "::error::__ARCHIVE_JSON__ placeholder still present -- data was never substituted"; exit 1; }
+          echo "sanity checks passed"
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish to gh-pages (bet/index.html)
+        run: |
+          set -euo pipefail
+          git fetch origin gh-pages:gh-pages
+          git worktree add ghpages gh-pages
+          mkdir -p ghpages/bet
+          cp source/bet/index.html ghpages/bet/index.html
+          cd ghpages
+          if git diff --quiet -- bet/index.html; then
+            echo "gh-pages bet/index.html unchanged, skipping commit"
+          else
+            git add bet/index.html
+            git commit -m "Publish betting dashboard ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push origin gh-pages
+          fi
+
+      - name: Mirror into public/bet/index.html on main
+        run: |
+          set -euo pipefail
+          git fetch origin main:main
+          git worktree add mainwt main
+          mkdir -p mainwt/public/bet
+          cp source/bet/index.html mainwt/public/bet/index.html
+          cd mainwt
+          if git diff --quiet -- public/bet/index.html; then
+            echo "main public/bet/index.html unchanged, skipping commit"
+          else
+            git add public/bet/index.html
+            git commit -m "Mirror betting dashboard into public/bet/ ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push origin main
+          fi
+
+      - name: Verify the public URL
+        run: |
+          set -euo pipefail
+          sleep 20
+          code=$(curl -s -o /tmp/check.html -w "%{http_code}" https://kubaman9.github.io/portfolio/bet/)
+          echo "HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::public URL did not return 200 within this run (GitHub Pages can lag) -- check manually"
+            exit 0
+          fi
+          grep -q 'type="password"' /tmp/check.html && echo "password form present" || echo "::warning::password form not found in served page"
