@@ -56,10 +56,14 @@ The secret must be the full driver string, not the `mongosh` command Atlas shows
 `OperationFailure` in the log means the user/password was rejected; a timeout
 means the host is wrong or Network Access is blocking the runner.
 
-**Design:** `tools/bet/template.html` is the page design (BetBot layout). The Action
-writes it into `dashboard_template/current.html_shell` whenever it changes, then
-builds from it, so changing the look is a commit to that file. It renders only what
-the daily run already writes to `dashboard_days` / `dashboard_index`.
+**Design:** the page design lives in `dashboard_template/current.html_shell` and can
+be changed two ways. The daily run may edit it in Mongo when it thinks the page
+needs work (it keeps the old one in `previous_html_shell`). Editing
+`tools/bet/template.html` in the repo also works: the Action pushes that file into
+Mongo whenever the file changes (tracked by `repo_hash`), and otherwise leaves the
+run's edits alone. Every build checks the template first (placeholder present, inline
+JS parses); a broken Mongo design falls back to the repo copy so the site stays up, and
+`dashboard_template/current.last_build` records what was used and why.
 
 The two paths below are fallbacks.
 
