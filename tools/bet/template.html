@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>BetBot</title>
+<title>Kubaman Ledger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
   --text:#e8eef5; --muted:#8b98a8; --dim:#5d6b7b;
   --green:#19e68c; --green2:#10b56d; --greenbg:rgba(25,230,140,.12);
   --red:#f25f5c; --redbg:rgba(242,95,92,.13); --yellow:#facc15; --yellowbg:rgba(250,204,21,.12);
-  --blue:#60a5fa; --radius:14px;
+  --blue:#60a5fa; --gold:#f5b518; --orange:#ff6a3d; --radius:14px;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
@@ -81,7 +81,7 @@ b{font-weight:700;color:#fff}
 .cta{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#03140b;font-weight:700;border-radius:10px;padding:10px 16px;font-size:13.5px}
 .cta:hover{filter:brightness(1.08)}
 .ghost{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:rgba(15,22,31,.7);border-radius:10px;padding:9px 14px;font-size:13px;color:#c9d4df}
-.hero-badge{position:absolute;right:18px;bottom:18px;background:rgba(7,11,16,.78);border:1px solid var(--line2);border-radius:12px;padding:10px 14px;backdrop-filter:blur(6px)}
+.hero-badge{position:absolute;right:18px;top:18px;background:rgba(7,11,16,.78);border:1px solid var(--line2);border-radius:12px;padding:10px 14px;backdrop-filter:blur(6px)}
 .hero-badge .v{font-size:22px;font-weight:800}
 .hero-badge .l{font-size:11.5px;color:var(--muted)}
 
@@ -225,6 +225,50 @@ details.more>.in{padding:0 16px 16px}
 .search:focus{outline:none;border-color:var(--green)}
 .footer{margin-top:26px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:500 11px var(--mono);color:var(--dim);letter-spacing:.04em}
 
+/* ledger additions */
+.greet h1{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;margin:0}
+.greet .gs{font-size:12.5px;color:var(--muted);margin-top:2px}
+.gsearch{min-width:0;width:210px}
+.kstrip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:16px;overflow:hidden}
+.kstrip>div{padding:12px 16px;border-left:1px solid var(--line);min-width:0}
+.kstrip>div:first-child{border-left:0}
+.kstrip .l{font-size:11.5px;color:var(--muted)}
+.kstrip .v{font:700 17px var(--mono);white-space:nowrap;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.kstrip .s{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.htiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:600px;margin-top:14px;position:relative}
+.htile{background:rgba(7,11,16,.62);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;min-width:0}
+.htile .l{font-size:11px;color:var(--muted)}
+.htile .v{font:700 16px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.htile .s{font-size:10.5px;color:var(--dim)}
+.hero h2 .newb{color:#03140b}
+.newb{display:inline-block;vertical-align:middle;margin-left:10px;background:var(--green);color:#03140b;font:800 10.5px var(--mono);border-radius:6px;padding:3px 7px;letter-spacing:.05em;text-transform:uppercase}
+.mq{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px}
+.mcard{border:1px solid var(--line);background:var(--bg2);border-radius:14px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left;min-width:0}
+.mcard:hover{border-color:#34465a}
+.mcard.sel{border-color:rgba(25,230,140,.55);box-shadow:0 0 0 1px rgba(25,230,140,.2)}
+.mcard .t{font-size:17px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tg2{font:600 10.5px var(--mono);border:1px solid var(--line2);border-radius:6px;padding:3px 7px;color:#c3ccd6;text-transform:lowercase;white-space:nowrap}
+.tg2.dog{color:var(--gold);border-color:rgba(245,181,24,.45)}
+.tg2.open{color:var(--green);border-color:rgba(25,230,140,.45)}
+.tg2.win{color:var(--green);border-color:rgba(25,230,140,.45);background:var(--greenbg)}
+.tg2.loss{color:var(--red);border-color:rgba(242,95,92,.45);background:var(--redbg)}
+.tg2.src{color:var(--blue);border-color:rgba(96,165,250,.4)}
+.tg2.mq{color:var(--gold);background:var(--yellowbg);border-color:rgba(245,181,24,.45)}
+.meter{height:5px;border-radius:9px;background:#1a2430;overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ffd54a);border-radius:9px}
+.meter.thin{height:3px;margin-top:5px;max-width:70px}
+.mrow{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
+.quote{border-left:3px solid var(--gold);padding:4px 0 4px 14px;font-style:italic;font-size:15px;color:#dbe3ec;line-height:1.5}
+.quote .by{font-style:normal;color:var(--muted);font-size:12px;margin-top:8px}
+.lg-row{display:grid;grid-template-columns:26px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+.lg-row:first-of-type{border-top:0}
+.lg-row .mono{font-size:12.5px;font-weight:700;text-align:right;min-width:58px}
+.me .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:800 12px var(--mono);color:var(--gold);border:2px solid var(--gold);background:#12171f}
+.user .av{border:2px solid var(--gold);color:var(--gold);font-family:var(--mono);font-weight:800}
+.mgreet{display:none}
+.tiles4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+
 /* mobile nav */
 .mnav{display:none}
 .mtop{display:none}
@@ -242,7 +286,7 @@ details.more>.in{padding:0 16px 16px}
   .mtop{display:flex;align-items:center;justify-content:space-between;margin:2px 0 14px}
   .mtop .brand{padding:0}
   .aside{grid-template-columns:minmax(0,1fr)}
-  .mnav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(9,14,20,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+  .mnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(9,14,20,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
   .mnav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);font-weight:600;padding:4px 0}
   .mnav a.on{color:var(--green)}
   .mnav svg{width:21px;height:21px}
@@ -258,6 +302,11 @@ details.more>.in{padding:0 16px 16px}
   .prow>.c-o,.prow>.c-c,.prow>.c-e{display:none}
   .prow>.c-n{grid-area:n;display:flex;gap:14px;font:600 12px var(--mono);color:#c3ccd6}
   .dboxes{grid-template-columns:1fr 1fr}
+  .kstrip{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(122px,1fr);overflow-x:auto}
+  .htiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mgreet{display:block;margin:0 0 12px}
+  .mgreet h1{font-size:21px}
+  .mnav a{font-size:10px}
   .brk{grid-template-columns:minmax(0,1fr);justify-items:center}
   .brk .bars{width:100%}
   .sstats{grid-template-columns:repeat(2,1fr)}
@@ -275,7 +324,7 @@ details.more>.in{padding:0 16px 16px}
     <div class="mtop" id="mtop"></div>
     <div class="topbar" id="topbar"></div>
     <div id="view"></div>
-    <div class="footer"><span>DATA + AI = SMARTER BETS</span><span id="foot"></span><span>YOUR EDGE. EVERY DAY.</span></div>
+    <div class="footer"><span>KUBAMAN LEDGER · BETBOT ENGINE</span><span id="foot"></span><span>THE DISCIPLINE IS THE EDGE.</span></div>
   </main>
 </div>
 <nav class="mnav" id="mnav"></nav>
@@ -387,14 +436,23 @@ var I = {
   up: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
   down: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>'
 };
-var NAV = [["#/today", "Today", I.home, "today"], ["#/parlays", "Parlays", I.layers, "parlays"], ["#/history", "History", I.hist, "history"], ["#/performance", "Performance", I.perf, "performance"]];
+I.clv = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>';
+I.shield = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.5" stroke-linecap="round"/></svg>';
+var NAV = [["#/today", "Today", I.home, "today"], ["#/parlays", "Parlays", I.layers, "parlays"], ["#/history", "History", I.hist, "history"], ["#/performance", "Performance", I.perf, "performance"], ["#/clv", "CLV Lab", I.clv, "clv"], ["#/risk", "Risk", I.shield, "risk"]];
+var MNAV = [NAV[0], NAV[1], NAV[2], ["#/performance", "Stats", I.perf, "performance"], NAV[5]];
+var BRAND = "Kubaman Ledger", OWNER = "Jakub", INIT = "JK";
+function greeting(){ var h = new Date().getHours(); return (h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening") + ", " + OWNER; }
+function ago(iso){ var t = Date.parse(iso); if (!isFinite(t)) return ""; var m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? "just now" : m < 60 ? m + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago"; }
+function ixDay(d){ for (var i = 0; i < IXDAYS.length; i++) if (IXDAYS[i].date === d) return IXDAYS[i]; return {}; }
+function curveColor(v){ return v >= 0 ? "#19e68c" : "#ff6a3d"; }
+function isOpen(p){ var r = String(p.result || "OPEN").toUpperCase(); return r === "OPEN" || r === "PENDING"; }
 
 /* ---------- charts ---------- */
 function line(vals, labels, w, h, opt){
   opt = opt || {};
   if (!vals.length) return "";
   var pad = opt.axis ? { l: 34, r: 20, t: 10, b: 20 } : { l: 2, r: 2, t: 4, b: 4 };
-  var mn = Math.min.apply(null, vals.concat([0])), mx = Math.max.apply(null, vals.concat([0]));
+  var base = opt.noZero ? [] : [0]; var mn = Math.min.apply(null, vals.concat(base)), mx = Math.max.apply(null, vals.concat(base));
   if (mx - mn < 1e-6) { mx += 1; mn -= 1; }
   var X = function(i){ return pad.l + (vals.length === 1 ? (w - pad.l - pad.r) / 2 : i * (w - pad.l - pad.r) / (vals.length - 1)); };
   var Y = function(v){ return pad.t + (mx - v) * (h - pad.t - pad.b) / (mx - mn); };
@@ -403,7 +461,7 @@ function line(vals, labels, w, h, opt){
   var col = opt.color || "#19e68c";
   var s = '<svg class="chart" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none" role="img" aria-label="' + esc(opt.label || "trend") + '"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + col + '" stop-opacity=".32"/><stop offset="1" stop-color="' + col + '" stop-opacity="0"/></linearGradient></defs>';
   if (opt.axis) {
-    [mx, (mx + mn) / 2, mn].forEach(function(v){ s += '<line x1="' + pad.l + '" x2="' + (w - pad.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#1c2733" stroke-width="1"/><text x="' + (pad.l - 5) + '" y="' + (Y(v) + 3) + '" text-anchor="end">' + (v > 0 ? "+" : "") + v.toFixed(v === 0 || Math.abs(v) >= 10 ? 0 : 1) + "</text>"; });
+    [mx, (mx + mn) / 2, mn].forEach(function(v){ s += '<line x1="' + pad.l + '" x2="' + (w - pad.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#1c2733" stroke-width="1"/><text x="' + (pad.l - 5) + '" y="' + (Y(v) + 3) + '" text-anchor="end">' + (opt.fmt ? opt.fmt(v) : (v > 0 ? "+" : "") + v.toFixed(v === 0 || Math.abs(v) >= 10 ? 0 : 1)) + "</text>"; });
     var step = Math.max(1, Math.ceil(labels.length / (opt.ticks || 7)));
     labels.forEach(function(l, i){ if ((i % step === 0 && labels.length - 1 - i >= step / 2) || i === labels.length - 1) s += '<text x="' + X(i) + '" y="' + (h - 5) + '" text-anchor="middle">' + esc(l) + "</text>"; });
   }
@@ -419,7 +477,7 @@ function donut(p, label){
 }
 
 /* ---------- shell pieces ---------- */
-function route(){ var h = location.hash || "#/today"; var m = h.match(/^#\/day\/(\d{4}-\d{2}-\d{2})/); if (m) return { v: "day", d: DAYS[m[1]] ? m[1] : LATEST }; var k = h.replace(/^#\/?/, "").split("/")[0]; if (k === "parlays" || k === "history" || k === "performance") return { v: k }; return { v: "day", d: LATEST, today: true }; }
+function route(){ var h = location.hash || "#/today"; var m = h.match(/^#\/day\/(\d{4}-\d{2}-\d{2})/); if (m) return { v: "day", d: DAYS[m[1]] ? m[1] : LATEST }; var k = h.replace(/^#\/?/, "").split("/")[0]; if (["parlays", "history", "performance", "clv", "risk"].indexOf(k) >= 0) return { v: k }; return { v: "day", d: LATEST, today: true }; }
 function navKey(r){ return r.v === "day" ? (r.d === LATEST ? "today" : "history") : r.v; }
 function renderSide(r){
   var key = navKey(r);
@@ -427,16 +485,64 @@ function renderSide(r){
   var l14 = lastN(14);
   var d = DAYS[LATEST] || {};
   document.getElementById("side").innerHTML =
-    '<div class="brand"><div class="logo">B</div><div><div class="brand-name">BetBot</div><div class="brand-sub">Smarter picks. Better decisions.</div></div></div>' +
+    '<div class="brand"><div class="logo">K</div><div><div class="brand-name" style="font-size:17px;line-height:1.05">KUBAMAN<br><span style="color:var(--gold)">LEDGER</span></div><div class="brand-sub">BetBot engine</div></div></div>' +
     '<nav class="nav">' + NAV.map(function(n){ return '<a href="' + n[0] + '" class="' + (key === n[3] ? "on" : "") + '">' + n[2] + n[1] + "</a>"; }).join("") + "</nav>" +
-    '<div class="edge"><div class="k">Your edge · last 14 days</div><div class="v ' + cls(l14) + '">' + fU(l14) + '</div><div class="s">' + esc(RECORD.W + "–" + RECORD.L + (RECORD.P ? "–" + RECORD.P : "")) + " all time · " + fU(UNITS) + "</div>" + line(spark, [], 200, 54, { color: l14 >= 0 ? "#19e68c" : "#f25f5c", label: "units, last 14 days" }) + "</div>" +
-    '<div class="bot"><div class="av">B</div><div><div class="n">BetBot</div><div class="o"><span class="dot"></span>' + esc(d.run_label || "run") + " · " + esc(d.generated_at ? fT(d.generated_at) : "") + "</div></div></div>";
-  document.getElementById("mnav").innerHTML = NAV.map(function(n){ return '<a href="' + n[0] + '" class="' + (key === n[3] ? "on" : "") + '">' + n[2] + "<span>" + n[1] + "</span></a>"; }).join("");
-  document.getElementById("mtop").innerHTML = '<div class="brand"><div class="logo">B</div><div><div class="brand-name">BetBot</div></div></div><span class="pill mono ' + cls(UNITS) + '">' + esc(RECORD.W + "–" + RECORD.L) + " · " + fU(UNITS) + "</span>";
+    '<div class="edge"><div class="k">Your edge · last 14 days</div><div class="v ' + cls(l14) + '">' + fU(l14) + '</div><div class="s">' + esc(RECORD.W + "–" + RECORD.L + (RECORD.P ? "–" + RECORD.P : "")) + " all time · " + fU(UNITS) + "</div>" + line(spark, [], 200, 54, { color: curveColor(l14), label: "units, last 14 days" }) + "</div>" +
+    '<div class="bot me"><div class="av">' + INIT + '</div><div><div class="n">' + OWNER + ' · Premium</div><div class="o"><span class="dot"></span>Models online · ' + esc(d.run_label || "run") + " " + esc(d.generated_at ? ago(d.generated_at) : "") + "</div></div></div>";
+  document.getElementById("mnav").innerHTML = MNAV.map(function(n){ return '<a href="' + n[0] + '" class="' + (key === n[3] ? "on" : "") + '">' + n[2] + "<span>" + n[1] + "</span></a>"; }).join("");
+  document.getElementById("mtop").innerHTML = '<div class="brand"><div class="logo">K</div><div><div class="brand-name" style="font-size:16px">Kubaman <span style="color:var(--gold)">Ledger</span></div></div></div><span class="pill mono ' + cls(UNITS) + '">' + esc(RECORD.W + "–" + RECORD.L) + " · " + fU(UNITS) + "</span>";
   document.getElementById("foot").textContent = "UPDATED " + (IX.updated_at ? fT(IX.updated_at).toUpperCase() : "");
 }
-function topbar(title, extra){
-  document.getElementById("topbar").innerHTML = '<h1>' + title + '</h1><div class="tb-right">' + (extra || "") + '<span class="user"><span class="av">K</span>Kuba</span></div>';
+function topbar(title, extra, sub){
+  var left = sub != null ? '<div class="greet"><h1>' + title + '</h1><div class="gs">' + sub + "</div></div>" : "<h1>" + title + "</h1>";
+  document.getElementById("topbar").innerHTML = left + '<div class="tb-right"><input class="search gsearch" id="gq" placeholder="Search picks, teams, players" aria-label="Search picks">' + (extra || "") + '<span class="user"><span class="av">' + INIT + "</span></span></div>";
+}
+function kstrip(date){
+  var e = ixDay(date), isT = date === LATEST;
+  var openRows = ROWS.filter(function(r){ return isT ? isOpen(r.p) : r.day === date && isOpen(r.p); });
+  var risk = 0; openRows.forEach(function(r){ risk += stake(r.p); });
+  var cn = num(e.clv_n), cd = num(e.clv_d), c0 = ((IX.stats || {}).clv || [])[0] || {};
+  var cells = [
+    ["Record", e.record_after || (RECORD.W + "–" + RECORD.L), isT ? "all time" : "after this day", ""],
+    ["Units", fU(e.units_after != null ? e.units_after : UNITS), "day " + fU(e.units_day), cls(e.units_after != null ? e.units_after : UNITS)],
+    ["Open", openRows.length + " · " + (Math.round(risk * 100) / 100) + "u", isT ? "tickets at risk" : "logged open", "neu"],
+    ["CLV coverage", cn != null && cd ? cn + "/" + cd + " (" + Math.round(100 * cn / cd) + "%)" : (e.clv_coverage || "—"), "rows with a real close", ""],
+    ["Mean CLV", c0.mean != null ? fP(c0.mean, 2) : "—", c0.n != null ? "n=" + c0.n + " · beat " + c0.beat : "", cls(c0.mean)]
+  ];
+  return '<div class="kstrip">' + cells.map(function(c){ return '<div><div class="l">' + c[0] + '</div><div class="v ' + c[3] + '">' + esc(c[1]) + '</div><div class="s">' + esc(c[2]) + "</div></div>"; }).join("") + "</div>";
+}
+function marquee(picks){
+  if (picks.length < 2) return "";
+  var list = picks.map(function(p, i){ return { p: p, i: i, m: p.marquee || (p.tags || []).join(" ").toLowerCase().indexOf("marquee") >= 0 }; });
+  list.sort(function(a, b){ return (b.m - a.m) || ((num(b.p.ev_pct) || -99) - (num(a.p.ev_pct) || -99)); });
+  list = list.slice(0, 3);
+  return '<div class="card"><div class="card-h"><h2>Featured / marquee picks</h2><span class="sub">best edge on the card</span></div><div class="mq">' + list.map(function(x){
+    var p = x.p, o = odds(p), conf = num(p.confidence), r = String(p.result || "OPEN").toUpperCase();
+    var tags = [];
+    if (x.m) tags.push(["mq", "marquee"]);
+    tags.push(o != null && o > 0 ? ["dog", "dog"] : ["", p.tier || "core"]);
+    if (p.thesis_quality) tags.push(["src", p.thesis_quality]);
+    tags.push(r === "WIN" ? ["win", "won " + fU(p.units)] : r === "LOSS" ? ["loss", "lost"] : r === "PUSH" ? ["", "push"] : ["open", "open"]);
+    return '<button class="mcard' + (x.i === state.sel ? " sel" : "") + '" data-i="' + x.i + '"><div style="display:flex;gap:10px;align-items:center">' + badge(p.sport, "sm") + '<span class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(shortM(p.matchup)) + '</span></div><div class="t">' + esc(shortB(p.bet, p.matchup)) + ' <span class="mono mut" style="font-size:13px">' + fO(o) + '</span></div><div class="sub">' + esc([num(p.stake_units) != null ? p.stake_units + "u" : "", p.book, num(p.ev_pct) != null ? fP(p.ev_pct) + " EV" : ""].filter(Boolean).join(" · ")) + '</div><div class="tags">' + tags.map(function(t){ return '<span class="tg2 ' + t[0] + '">' + esc(t[1]) + "</span>"; }).join("") + '</div><div class="mrow"><span>Confidence</span><span class="mono" style="color:var(--gold);font-weight:700">' + (conf != null ? conf + "%" : "—") + '</span></div><div class="meter"><i style="width:' + (conf || 0) + '%"></i></div></button>';
+  }).join("") + "</div></div>";
+}
+function topLeagues(){
+  var by = {}; ROWS.forEach(function(r){ if (r.kind !== "pick" || !graded(r)) return; var k = r.p.sport || "Other"; (by[k] = by[k] || []).push(r); });
+  var rows = Object.keys(by).map(function(k){ var t = tally(by[k]); t.k = k; return t; }).sort(function(a, b){ return b.u - a.u; });
+  if (!rows.length) return "";
+  return '<div class="card"><div class="card-h"><h2>Top leagues</h2><span class="sub">singles · ROI</span></div>' + rows.map(function(t){ return '<div class="lg-row">' + badge(t.k, "sm") + '<span><b style="font-weight:600;color:var(--text)">' + esc(t.k) + '</b> <span class="mono mut" style="font-size:11.5px">' + t.W + "–" + t.L + '</span></span><span class="mono ' + cls(t.u) + '">' + fU(t.u) + '</span><span class="mono ' + cls(t.roi) + '" style="min-width:62px">' + fP(t.roi) + "</span></div>"; }).join("") + "</div>";
+}
+function quoteCard(){ return '<div class="card"><div class="quote">“The ledger is the artifact. The discipline is the edge.”<div class="by">— Kubaman</div></div></div>'; }
+function clvTrend(h){
+  var pts = IXDAYS.filter(function(x){ return num(x.clv_d) > 0; });
+  return line(pts.map(function(x){ return 100 * num(x.clv_n) / num(x.clv_d); }), pts.map(function(x){ return fDs(x.date); }), h ? 900 : 360, h || 150, { axis: true, ticks: h ? 9 : 4, color: "#f5b518", noZero: true, fmt: function(v){ return Math.round(v) + "%"; }, label: "CLV coverage trend" });
+}
+function labRow(){
+  var ud = IXDAYS.slice(-14), last = ud.length ? num(ud[ud.length - 1].units_after) : 0;
+  var pts = IXDAYS.filter(function(x){ return num(x.clv_d) > 0; }), lp = pts[pts.length - 1];
+  return '<div class="card-h" style="margin:22px 0 12px"><h2>Performance lab</h2><a class="link" href="#/performance">Open →</a></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start">' +
+    '<div class="card"><div class="card-h"><h2 style="font-size:14px">Units curve</h2><span class="mono ' + cls(last) + '" style="font-weight:700">' + fU(last) + "</span></div>" + line(ud.map(function(x){ return num(x.units_after) || 0; }), ud.map(function(x){ return fDs(x.date); }), 360, 150, { axis: true, ticks: 4, color: curveColor(last), label: "units curve" }) + "</div>" +
+    '<div class="card"><div class="card-h"><h2 style="font-size:14px">CLV coverage trend</h2><span class="mono" style="font-weight:700;color:var(--gold)">' + (lp ? Math.round(100 * lp.clv_n / lp.clv_d) + "%" : "—") + "</span></div>" + clvTrend() + "</div></div>";
 }
 
 /* ---------- DAY / TODAY ---------- */
@@ -457,7 +563,7 @@ function pickRow(p, i, sel){
     '<div class="c-m"><div class="t" title="' + esc(plain(p.matchup)) + '">' + esc(shortM(p.matchup)) + '</div><div class="s">' + esc(meta || p.sport) + "</div></div>" +
     '<div class="c-p"><div class="t" title="' + esc(plain(p.bet)) + '">' + esc(shortB(p.bet, p.matchup)) + q(p.anchor_quality) + '</div><div class="s">' + esc(plain(p.bet_type || p.line || "")) + "</div></div>" +
     '<div class="c-o"><div class="num">' + fO(o) + '</div><div class="s">Odds</div></div>' +
-    '<div class="c-c"><div class="num ' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "%" : "—") + '</div><div class="s">' + (b != null ? "BE " + b.toFixed(1) + "%" : "Confidence") + "</div></div>" +
+    '<div class="c-c"><div class="num ' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "%" : "—") + '</div><div class="s">' + (b != null ? "BE " + b.toFixed(1) + "%" : "Confidence") + '</div><div class="meter thin"><i style="width:' + (conf || 0) + '%"></i></div></div>' +
     '<div class="c-e"><div class="num ' + cls(ev) + '">' + fP(ev) + '</div><div class="s">EV</div></div>' +
     '<div class="c-st r">' + stat(p.result, p.units) + '<div class="s" style="margin-top:4px">' + (st != null ? st + "u stake" : "") + "</div></div>" +
     '<div class="c-n"><span>' + fO(o) + '</span><span class="' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "% conf" : "") + '</span><span class="' + cls(ev) + '">' + (ev != null ? fP(ev) + " EV" : "") + "</span></div>" +
@@ -540,12 +646,12 @@ function quickStats(d, date){
     '<div class="tile"><div class="l">ROI</div><div class="v ' + cls(ROI) + '">' + fP(ROI) + '</div><div class="s">on graded stake</div></div>' +
     '<div class="tile"><div class="l">Units</div><div class="v ' + cls(UNITS) + '">' + fU(UNITS) + '</div><div class="s ' + cls(today.units_day) + '">' + (today.units_day != null ? fU(today.units_day) + " this day" : "") + "</div></div>" +
     '</div><div class="card-h" style="margin:16px 0 6px"><h2 style="font-size:14px">Recent performance</h2><span class="sub">cumulative units</span></div>' +
-    line(chartDays.map(function(x){ return num(x.units_after) || 0; }), chartDays.map(function(x){ return fDs(x.date); }), 320, 140, { axis: true, ticks: 5, color: "#19e68c", label: "cumulative units" }) + "</div>";
+    line(chartDays.map(function(x){ return num(x.units_after) || 0; }), chartDays.map(function(x){ return fDs(x.date); }), 320, 140, { axis: true, ticks: 5, color: curveColor(UNITS), label: "cumulative units" }) + "</div>";
 }
 function pastPicks(limit){
   var g = ROWS.filter(graded).slice().sort(function(a, b){ return a.day < b.day ? 1 : a.day > b.day ? -1 : 0; }).slice(0, limit);
   return '<div class="card"><div class="card-h"><h2>Past picks &amp; results</h2><a class="link" href="#/history">View all →</a></div><div class="tscroll"><table class="tbl"><thead><tr><th>Date</th><th class="hide-m">Sport</th><th>Pick</th><th class="r hide-m">Odds</th><th class="r">Result</th></tr></thead><tbody>' +
-    g.map(function(r){ var p = r.p; return '<tr class="click" data-go="#/day/' + r.day + '"><td class="mono" style="white-space:nowrap">' + fDs(r.day) + '</td><td class="hide-m">' + badge(p.sport || "Multi", "sm") + '</td><td class="ell">' + esc(plain(r.kind === "slip" ? p.shape : p.bet)) + '</td><td class="r mono hide-m">' + fO(odds(p)) + '</td><td class="r">' + stat(p.result, p.units) + "</td></tr>"; }).join("") + "</tbody></table></div></div>";
+    g.map(function(r){ var p = r.p; return '<tr class="click" data-go="#/day/' + r.day + '"><td class="mono" style="white-space:nowrap">' + fDs(r.day) + '</td><td class="hide-m">' + badge(p.sport || "Multi", "sm") + '</td><td class="ell" style="max-width:190px">' + esc(plain(r.kind === "slip" ? p.shape : p.bet)) + '</td><td class="r mono hide-m">' + fO(odds(p)) + '</td><td class="r">' + stat(p.result, p.units) + "</td></tr>"; }).join("") + "</tbody></table></div></div>";
 }
 function brkRows(key){
   var st = IX.stats || {};
@@ -602,20 +708,25 @@ function renderDay(r){
   var isToday = date === LATEST;
   var l7 = lastN(7);
   var cnt = {}; picks.concat(slips).forEach(function(p){ var s = p.sport || "Multi"; cnt[s] = (cnt[s] || 0) + 1; });
-  topbar((isToday ? "Today · " : "") + "<b>" + esc(fD(date, true)) + "</b>", dayNav(date));
+  var e = ixDay(date);
+  if (isToday) topbar(esc(greeting()), dayNav(date), esc(fD(date, true)) + " · Updated " + esc(ago(d.generated_at || IX.updated_at)));
+  else topbar("<b>" + esc(fD(date, true)) + "</b>", dayNav(date), esc((d.run_label || "run") + " · " + (e.record_after || "") + " after this day"));
+  var mg = isToday ? '<div class="mgreet greet"><h1>' + esc(greeting()) + '</h1><div class="gs">' + esc(fD(date, true)) + " · Updated " + esc(ago(d.generated_at || IX.updated_at)) + "</div></div>" : "";
   var hero = '<section class="hero">' + heroSvg() +
-    "<h2>" + (isToday ? "Today’s <span>Top Picks</span>" : "Picks · <span>" + esc(fD(date)) + "</span>") + "</h2>" +
+    "<h2>" + (isToday ? "Today’s <span>Top Picks</span>" : "Picks · <span>" + esc(fD(date)) + "</span>") + (isToday && d.generated_at && Date.now() - Date.parse(d.generated_at) < 18 * 3600e3 ? '<span class="newb">new</span>' : "") + "</h2>" +
     "<p>" + esc(first(d.headline, 190)) + "</p>" +
-    '<div class="row"><a class="cta" href="#picks" data-scroll="picks">View all picks ' + I.arrow + '</a><span class="ghost mono">' + picks.length + " picks · " + slips.length + " parlays" + (stakeSum ? " · " + stakeSum.toFixed(2).replace(/\.?0+$/, "") + "u" : "") + "</span></div>" +
+    '<div class="row"><a class="cta" href="#picks" data-scroll="picks">View all picks ' + I.arrow + '</a>' + (d.artifact_url_for_that_day ? '<a class="ghost" href="' + esc(d.artifact_url_for_that_day) + '" target="_blank" rel="noopener">Full briefing</a>' : "") + "</div>" +
+    '<div class="htiles"><div class="htile"><div class="l">Positions</div><div class="v">' + (picks.length + slips.length) + '</div><div class="s">' + picks.length + " singles · " + slips.length + ' slips</div></div><div class="htile"><div class="l">Units at risk</div><div class="v">' + (Math.round(stakeSum * 100) / 100) + 'u</div><div class="s">of 8u ceiling</div></div><div class="htile"><div class="l">Record after</div><div class="v">' + esc(e.record_after || "—") + '</div><div class="s">' + fU(e.units_day) + ' this day</div></div><div class="htile"><div class="l">CLV coverage</div><div class="v">' + esc(e.clv_coverage || "—") + '</div><div class="s">real closes</div></div></div>' +
     '<div class="hero-badge"><div class="v ' + cls(l7) + '">' + fU(l7) + '</div><div class="l">Last 7 days</div></div></section>';
   var chips = '<div class="chips">' + ["All"].concat(sports).map(function(s){ return '<button class="chip' + (state.sport === s ? " on" : "") + '" data-sport="' + esc(s) + '">' + (s === "All" ? "All" : badge(s, "xs")) + (s === "All" ? "" : esc(s)) + ' <span class="n">' + (s === "All" ? picks.length + slips.length : cnt[s]) + "</span></button>"; }).join("") + "</div>";
-  var featured = '<div class="card" id="picks"><div class="card-h"><h2>Featured picks</h2><span class="sub">' + (fp.length ? "tap a pick for the breakdown" : "") + "</span></div>" +
+  var featured = '<div class="card" id="picks"><div class="card-h"><h2>' + (isToday ? "Today’s card" : "The card") + '</h2><span class="sub">' + (fp.length ? fp.length + " singles · tap for the breakdown" : "") + "</span></div>" +
     (fp.length ? '<div class="phead"><span></span><span>Matchup</span><span>Pick</span><span>Odds</span><span>Conf.</span><span>EV</span><span class="r">Status</span></div><div class="plist">' + fp.map(function(x){ return pickRow(x.p, x.i, x.i === state.sel); }).join("") + "</div>" : '<div class="empty">No singles' + (state.sport !== "All" ? " in " + esc(state.sport) : "") + " on this card.</div>") + "</div>";
   var detailCard = '<div class="card" id="detail"><div class="card-h"><h2>Pick detail</h2><span class="sub">' + (picks.length ? state.sel + 1 + " of " + picks.length : "") + "</span></div>" + detail(picks[state.sel]) + "</div>";
   var parlays = '<div class="card"><div class="card-h"><h2>Parlay corner</h2><span class="sub">' + fs.length + " slip" + (fs.length === 1 ? "" : "s") + "</span></div>" + (fs.length ? '<div class="slips">' + fs.map(slipCard).join("") + "</div>" : '<div class="empty">No parlays on this card.</div>') + "</div>";
   document.getElementById("view").innerHTML =
-    '<div class="grid g-today"><div class="col">' + hero + chips + featured + detailCard + parlays + "</div>" +
-    '<div class="col aside">' + quickStats(d, date) + renderNotes(d) + renderWire(d) + "</div></div>" +
+    mg + kstrip(date) +
+    '<div class="grid g-today"><div class="col">' + hero + chips + (state.sport === "All" ? marquee(picks) : "") + featured + detailCard + parlays + "</div>" +
+    '<div class="col aside">' + quickStats(d, date) + topLeagues() + renderNotes(d) + renderWire(d) + quoteCard() + "</div></div>" + labRow() +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + renderGraded(d) + renderPasses(d) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + pastPicks(8) + breakdown("brk", BRK.slice(0, 3)) + "</div>" +
     '<div style="margin-top:16px">' + extras(d) + "</div>";
@@ -673,18 +784,59 @@ function renderPerformance(){
   var bandTbl = function(title, rows){ return rows && rows.length ? '<div class="sec-t">' + esc(title) + '</div><table class="tbl"><thead><tr><th>Band</th><th class="r">Graded</th><th class="r">Open</th><th class="r">Units</th><th class="r hide-m">Mean CLV</th></tr></thead><tbody>' + rows.map(function(b){ return "<tr><td>" + esc(b.band) + '</td><td class="r mono">' + esc(b.n) + '</td><td class="r mono">' + esc(b.open == null ? "" : b.open) + '</td><td class="r mono ' + cls(b.units) + '">' + fU(b.units) + '</td><td class="r mono hide-m">' + (b.mean_clv != null ? fP(b.mean_clv, 2) : "—") + "</td></tr>"; }).join("") + "</tbody></table>" : ""; };
   document.getElementById("view").innerHTML =
     '<div class="kpis">' + tiles.map(function(t){ return '<div class="tile" title="' + esc(plain(t.s)) + '"><div class="l">' + esc(t.l) + '</div><div class="v ' + (C[t.c] || "") + '">' + esc(t.v) + '</div><div class="s">' + md(t.s) + "</div></div>"; }).join("") + "</div>" +
-    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, label: "cumulative units, all time" }) + "</div>" +
+    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, color: curveColor(UNITS), label: "cumulative units, all time" }) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + breakdown("brk", BRK) +
-    '<div class="card"><div class="card-h"><h2>Closing line value</h2><span class="sub">did we beat the close?</span></div><div class="tscroll"><table class="tbl"><thead><tr><th>Segment</th><th class="r">Beat</th><th class="r">Mean</th><th class="r hide-m">Line CLV</th></tr></thead><tbody>' + clv.map(function(x){ return "<tr><td>" + esc(x.k) + '</td><td class="r mono">' + esc(x.beat) + "/" + esc(x.n) + '</td><td class="r mono ' + cls(x.mean) + '">' + fP(x.mean, 2) + '</td><td class="r mono hide-m">' + (x.pts_mean != null ? (x.pts_mean > 0 ? "+" : "") + x.pts_mean + " pts (n=" + x.pts_n + ")" : "—") + "</td></tr>"; }).join("") + "</tbody></table></div>" + (st.calibration ? '<div class="sec-t">Calibration</div><div class="prose"><p>' + md(st.calibration) + "</p></div>" : "") + "</div></div>" +
+    '<div class="card"><div class="card-h"><h2>Calibration</h2><a class="link" href="#/clv">CLV Lab →</a></div>' + (st.calibration ? '<div class="prose"><p>' + md(st.calibration) + "</p></div>" : '<div class="empty">No calibration line yet.</div>') + '<div class="sec-t">CLV coverage trend</div>' + clvTrend() + "</div></div>" +
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Where the money leaks</h2><span class="sub">tap a row for the read</span></div>' + leaks.map(function(l){ return '<details class="lrow" style="border-top:1px solid var(--line)"><summary style="list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center"><span class="t">' + esc(l.seg) + '</span><span class="mono mut">' + esc(l.record) + '</span><span class="mono ' + ({ neg: "neg", pos: "pos" }[l.tone] || "") + '" style="font-weight:700;min-width:64px;text-align:right">' + esc(l.units) + '</span></summary><div class="b prose" style="margin-top:8px">' + md(l.read) + "</div></details>"; }).join("") + "</div>" +
     '<details class="more" style="margin-top:16px"><summary>EV, thesis and anchor bands</summary><div class="in">' + bandTbl("EV bands", bands.ev) + bandTbl("Thesis bands", bands.thesis) + bandTbl("Anchor bands", bands.anchor) + (bands.note ? '<p class="sub" style="margin-top:10px">' + md(bands.note) + "</p>" : "") + "</div></details>";
+}
+
+/* ---------- CLV LAB ---------- */
+function renderClv(){
+  topbar("<b>CLV Lab</b>", '<span class="pill mono">beat the close, or it was luck</span>');
+  var st = IX.stats || {}, clv = st.clv || [], c0 = clv[0] || {}, cn = num(LAST && LAST.clv_n), cd = num(LAST && LAST.clv_d);
+  var rows = ROWS.filter(function(r){ return num(r.p.clv) != null; }).sort(function(a, b){ return a.day < b.day ? 1 : -1; });
+  var leak = (IX.leaks || []).filter(function(l){ return /clv/i.test(l.seg); });
+  document.getElementById("view").innerHTML =
+    '<div class="tiles4">' +
+    '<div class="tile"><div class="l">CLV coverage</div><div class="v">' + (cd ? cn + "/" + cd : "—") + '</div><div class="s">' + (cd ? Math.round(100 * cn / cd) + "% carry a real close" : "") + "</div></div>" +
+    '<div class="tile"><div class="l">Mean CLV</div><div class="v ' + cls(c0.mean) + '">' + fP(c0.mean, 2) + '</div><div class="s">n=' + esc(c0.n) + "</div></div>" +
+    '<div class="tile"><div class="l">Beat the close</div><div class="v">' + esc(c0.beat) + "/" + esc(c0.n) + '</div><div class="s">' + (c0.n ? Math.round(100 * c0.beat / c0.n) + "% of priced rows" : "") + "</div></div>" +
+    '<div class="tile"><div class="l">Line CLV</div><div class="v ' + cls(c0.pts_mean) + '">' + (c0.pts_mean != null ? (c0.pts_mean > 0 ? "+" : "") + c0.pts_mean + " pts" : "—") + '</div><div class="s">' + (c0.pts_n != null ? c0.pts_n + " rows where the point moved" : "") + "</div></div></div>" +
+    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Coverage trend</h2><span class="sub">share of graded rows with a real closing price</span></div>' + clvTrend(200) + "</div>" +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' +
+    '<div class="card"><div class="card-h"><h2>By segment</h2></div><div class="tscroll"><table class="tbl"><thead><tr><th>Segment</th><th class="r">Beat</th><th class="r">Mean</th><th class="r hide-m">Line CLV</th></tr></thead><tbody>' + clv.map(function(x){ return "<tr><td>" + esc(x.k) + '</td><td class="r mono">' + esc(x.beat) + "/" + esc(x.n) + '</td><td class="r mono ' + cls(x.mean) + '">' + fP(x.mean, 2) + '</td><td class="r mono hide-m">' + (x.pts_mean != null ? (x.pts_mean > 0 ? "+" : "") + x.pts_mean + " pts (n=" + x.pts_n + ")" : "—") + "</td></tr>"; }).join("") + "</tbody></table></div>" + leak.map(function(l){ return '<div class="sec-t">' + esc(l.seg) + '</div><div class="prose"><p>' + md(l.read) + "</p></div>"; }).join("") + "</div>" +
+    '<div class="card"><div class="card-h"><h2>Pick by pick</h2><span class="sub">' + rows.length + ' with a close</span></div><div class="tscroll"><table class="tbl"><thead><tr><th>Date</th><th>Pick</th><th class="hide-m">Close</th><th class="r">CLV</th><th class="r">Result</th></tr></thead><tbody>' + rows.slice(0, 30).map(function(r){ var p = r.p; return '<tr class="click" data-go="#/day/' + r.day + '"><td class="mono" style="white-space:nowrap">' + fDs(r.day) + '</td><td class="ell" style="font-weight:600;max-width:190px">' + esc(plain(p.bet || p.shape)) + '</td><td class="ell mut hide-m" style="max-width:120px">' + esc(plain(p.close || "")) + '</td><td class="r mono ' + cls(p.clv) + '">' + fP(p.clv, 2) + '</td><td class="r">' + stat(p.result, p.units) + "</td></tr>"; }).join("") + "</tbody></table></div></div></div>";
+}
+
+/* ---------- RISK ---------- */
+function renderRisk(){
+  topbar("<b>Risk</b>", '<span class="pill mono">8u daily ceiling</span>');
+  var d = DAYS[LATEST] || {}, open = ROWS.filter(function(r){ return isOpen(r.p); });
+  var risk = 0, games = {}; open.forEach(function(r){ var s = stake(r.p); risk += s; var g = r.kind === "slip" ? "Parlay · " + first(r.p.shape, 44) : plain(r.p.matchup) || "Other"; games[g] = games[g] || { n: 0, u: 0, sport: r.p.sport, stale: false }; games[g].n++; games[g].u += s; if (r.day < LATEST) games[g].stale = true; });
+  var today = 0; ((d.picks || []).concat(d.slips || [])).forEach(function(p){ today += num(p.stake_units) || 0; });
+  var stale = open.filter(function(r){ return r.day < LATEST; });
+  var g = Object.keys(games).sort(function(a, b){ return games[b].u - games[a].u; });
+  var ex = d.exposure || {};
+  var pctUsed = Math.min(100, Math.round(100 * today / 8));
+  document.getElementById("view").innerHTML =
+    '<div class="tiles4">' +
+    '<div class="tile"><div class="l">Open tickets</div><div class="v neu">' + open.length + '</div><div class="s">' + open.filter(function(r){ return r.kind === "pick"; }).length + " singles · " + open.filter(function(r){ return r.kind === "slip"; }).length + " slips</div></div>" +
+    '<div class="tile"><div class="l">Units at risk</div><div class="v">' + (Math.round(risk * 100) / 100) + 'u</div><div class="s">across ' + g.length + " games</div></div>" +
+    '<div class="tile"><div class="l">Today vs ceiling</div><div class="v">' + (Math.round(today * 100) / 100) + ' / 8u</div><div class="meter" style="margin-top:6px"><i style="width:' + pctUsed + '%"></i></div></div>' +
+    '<div class="tile"><div class="l">Largest single game</div><div class="v">' + (g.length ? (Math.round(games[g[0]].u * 100) / 100) + "u" : "—") + '</div><div class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(g[0] ? shortM(g[0]) : "") + "</div></div></div>" +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' +
+    '<div class="card"><div class="card-h"><h2>Exposure by game</h2><span class="sub">open tickets only</span></div>' + (g.length ? '<table class="tbl"><thead><tr><th></th><th>Game</th><th class="r">Tickets</th><th class="r">At risk</th></tr></thead><tbody>' + g.map(function(k){ var x = games[k]; return "<tr><td>" + badge(x.sport || "Multi", "sm") + '</td><td class="ell">' + esc(k.indexOf("Parlay · ") === 0 ? k : shortM(k)) + (x.stale ? ' <span class="tg2 dog">older</span>' : "") + '</td><td class="r mono">' + x.n + '</td><td class="r mono">' + (Math.round(x.u * 100) / 100) + "u</td></tr>"; }).join("") + "</tbody></table>" : '<div class="empty">Nothing open.</div>') + "</div>" +
+    '<div class="card"><div class="card-h"><h2>Today’s exposure read</h2><span class="sub">' + esc(fD(LATEST)) + "</span></div>" + (ex.sub || ex.note ? '<div class="prose">' + (ex.sub ? "<p>" + md(ex.sub) + "</p>" : "") + (ex.note ? '<p class="mut">' + md(ex.note) + "</p>" : "") + "</div>" : '<div class="empty">No exposure note this run.</div>') +
+    (d.alerts || []).filter(function(a){ return a.tone === "exposure"; }).map(function(n){ return '<div class="note exposure"><div class="tg">' + esc(plain(n.tag)) + '</div><div class="tx">' + md(n.text) + "</div></div>"; }).join("") +
+    (stale.length ? '<div class="sec-t">Still open from earlier days</div><div class="prose"><p class="mut">' + stale.length + " ticket" + (stale.length === 1 ? "" : "s") + " logged before today have no grade yet: " + esc(stale.slice(0, 6).map(function(r){ return plain(r.p.bet || r.p.shape); }).join(", ")) + (stale.length > 6 ? "…" : "") + "</p></div>" : "") + "</div></div>";
 }
 
 /* ---------- router + events ---------- */
 function render(){
   var r = route();
   safe(function(){ renderSide(r); });
-  var ok = safe(function(){ if (r.v === "history") renderHistory(); else if (r.v === "parlays") renderParlays(); else if (r.v === "performance") renderPerformance(); else renderDay(r); return true; }, false);
+  var ok = safe(function(){ if (r.v === "history") renderHistory(); else if (r.v === "parlays") renderParlays(); else if (r.v === "performance") renderPerformance(); else if (r.v === "clv") renderClv(); else if (r.v === "risk") renderRisk(); else renderDay(r); return true; }, false);
   if (!ok) document.getElementById("view").innerHTML = '<div class="card"><div class="empty">This view hit a data problem. Try <a class="acc" href="#/history">History</a>.</div></div>';
 }
 var lastRoute = "";
@@ -704,6 +856,7 @@ document.addEventListener("click", function(e){
   if (t.hasAttribute("data-go")) { location.hash = t.getAttribute("data-go"); }
 });
 document.addEventListener("keydown", function(e){ if ((e.key === "Enter" || e.key === " ") && e.target.hasAttribute && e.target.hasAttribute("data-i")) { e.preventDefault(); e.target.click(); } });
+document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target.id === "gq") { state.hq = e.target.value; state.hsport = "All"; state.hres = "All"; state.hkind = "All"; state.hn = 40; if (location.hash === "#/history") render(); else location.hash = "#/history"; } });
 document.addEventListener("input", function(e){ if (e.target.id === "hq") { state.hq = e.target.value; state.hn = 40; var pos = e.target.selectionStart; render(); var n = document.getElementById("hq"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } } });
 lastRoute = location.hash;
 render();

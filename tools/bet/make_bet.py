@@ -36,11 +36,11 @@ PBKDF2_ITERATIONS = 250000
 MIN_OUTPUT_BYTES = 20 * 1024  # a build that collapses to ~1KB (empty archive) must fail loud
 
 WRAPPER_TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><meta name="bet-build" content="{build_id}"><meta name="bet-src" content="{src_hash}"><title>BetBot</title>
+<meta name="robots" content="noindex,nofollow"><meta name="bet-build" content="{build_id}"><meta name="bet-src" content="{src_hash}"><title>Kubaman Ledger</title>
 <style>:root{{color-scheme:light dark}}body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#070b10;color:#e8eef5;font:16px Inter,system-ui,sans-serif}}
 form{{width:min(320px,86vw)}}h1{{font-size:22px;font-weight:800;margin:0 0 16px;display:flex;align-items:center;gap:10px}}h1 i{{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#19e68c;color:#04130b;font-style:normal;box-shadow:0 0 22px rgba(25,230,140,.35)}}input,button{{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #263443;font:inherit;margin-bottom:10px}}
 input{{background:#0f161f;color:inherit}}input:focus{{outline:none;border-color:#19e68c}}button{{background:#19e68c;color:#03140b;border:0;font-weight:700;cursor:pointer}}#e{{color:#f08a7c;min-height:1.2em;font-size:14px}}</style></head>
-<body><form id="f"><h1><i>B</i>BetBot</h1><input id="p" type="password" placeholder="Password" autocomplete="current-password" autofocus><button>Open</button><div id="e"></div></form>
+<body><form id="f"><h1><i>K</i>Kubaman <span style="color:#f5b518">Ledger</span></h1><input id="p" type="password" placeholder="Password" autocomplete="current-password" autofocus><button>Open</button><div id="e"></div></form>
 <script>(function(){{var S="{salt_b64}",I="{iv_b64}",C="{ct_b64}",N={iterations};
 function d(s){{return Uint8Array.from(atob(s),function(c){{return c.charCodeAt(0);}});}}
 async function open(pw){{var k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
