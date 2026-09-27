@@ -1,1 +1,2 @@
 pycryptodome>=3.20
+pymongo>=4.6

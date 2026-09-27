@@ -1,0 +1,91 @@
+name: Build betting dashboard from Mongo
+
+# The daily Claude run writes dashboard_days / dashboard_index to Mongo and
+# stops there -- it never needs git access to this repo. This workflow reads
+# Mongo on a schedule, rebuilds the encrypted bet/index.html, and publishes it
+# only when the content hash changed (so most runs exit in ~20s with no commit).
+#
+# Needs ONE repo secret: MONGODB_URI (read-only user on betting_agent).
+# The page passphrase is read from betting_agent.site_config.page_passphrase,
+# or from a BET_PAGE_PASSPHRASE secret if you add one.
+
+on:
+  schedule:
+    - cron: "*/10 7-12 * * *"   # after the 3am ET primary run
+    - cron: "*/10 20-23 * * *"  # after the ~4pm ET pre-kick refresh
+    - cron: "7 * * * *"         # hourly safety net
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-bet
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip cleanly if the Mongo secret is not configured yet
+        id: guard
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "::warning::MONGODB_URI secret not set -- add it under Settings > Secrets and variables > Actions"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.go == 'true'
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        if: steps.guard.outputs.go == 'true'
+        run: pip install -q pymongo pycryptodome
+
+      - name: Check out gh-pages alongside
+        if: steps.guard.outputs.go == 'true'
+        run: |
+          git fetch origin gh-pages:gh-pages
+          git worktree add ../ghpages gh-pages
+
+      - name: Build from Mongo (skips if unchanged)
+        id: build
+        if: steps.guard.outputs.go == 'true'
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          BET_PAGE_PASSPHRASE: ${{ secrets.BET_PAGE_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          out=$(python3 tools/bet/build_from_mongo.py --out /tmp/bet/index.html --existing ../ghpages/bet/index.html)
+          echo "$out"
+          if [ "$out" = "unchanged" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Publish to gh-pages and mirror into main
+        if: steps.build.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          mkdir -p ../ghpages/bet
+          cp /tmp/bet/index.html ../ghpages/bet/index.html
+          (cd ../ghpages && git add bet/index.html && git commit -m "bet: dashboard rebuilt from Mongo ($stamp)" && git push origin gh-pages)
+
+          mkdir -p public/bet
+          cp /tmp/bet/index.html public/bet/index.html
+          git add public/bet/index.html
+          git commit -m "bet: mirror dashboard into public/bet ($stamp)"
+          git pull --rebase -q origin main
+          git push origin main

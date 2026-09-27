@@ -42,6 +42,17 @@ git history.
 
 ## Publish
 
+**Automatic (recommended):** `.github/workflows/build-bet.yml` rebuilds from Mongo
+on a schedule (every 10 min after the 3am and 4pm ET runs, hourly otherwise) via
+`tools/bet/build_from_mongo.py` and publishes only when the content hash changed.
+The daily Claude run then only has to write Mongo and never needs git access.
+It needs one repo secret, `MONGODB_URI`, for a read-only user on `betting_agent`,
+and the Atlas network access list has to allow GitHub's runners. Until the secret
+exists, the workflow logs a warning and exits cleanly.
+
+The two paths below are fallbacks.
+
+
 Two paths, both mirror into `public/bet/index.html` on `main` (so a later
 `npm run deploy`, which rebuilds `dist/` from `main` and republishes
 `gh-pages`, doesn't wipe `/bet`):

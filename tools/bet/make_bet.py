@@ -14,6 +14,8 @@ Usage:
   BET_PAGE_PASSPHRASE=... python3 make_bet.py --template shell.html --archive archive.json --out bet/index.html
 """
 import argparse
+import datetime
+import hashlib
 import base64
 import json
 import os
@@ -34,7 +36,7 @@ PBKDF2_ITERATIONS = 250000
 MIN_OUTPUT_BYTES = 20 * 1024  # a build that collapses to ~1KB (empty archive) must fail loud
 
 WRAPPER_TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>Ledger</title>
+<meta name="robots" content="noindex,nofollow"><meta name="bet-build" content="{build_id}"><meta name="bet-src" content="{src_hash}"><title>Ledger</title>
 <style>:root{{color-scheme:light dark}}body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1220;color:#e6ebf5;font:16px system-ui,sans-serif}}
 form{{width:min(320px,86vw)}}h1{{font-size:18px;font-weight:600;margin:0 0 14px}}input,button{{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #33415c;font:inherit;margin-bottom:10px}}
 input{{background:#111a2e;color:inherit}}button{{background:#c9922a;color:#111;border:0;font-weight:600;cursor:pointer}}#e{{color:#f08a7c;min-height:1.2em;font-size:14px}}</style></head>
@@ -75,6 +77,7 @@ def main():
     ap.add_argument("--template", required=True, help="path to the html_shell file (contains __ARCHIVE_JSON__)")
     ap.add_argument("--archive", required=True, help="path to the archive JSON file (index + days)")
     ap.add_argument("--out", required=True, help="output path, e.g. bet/index.html")
+    ap.add_argument("--build-id", default=None, help="stamp written outside the ciphertext so freshness can be checked without decrypting (default: current UTC time)")
     args = ap.parse_args()
 
     passphrase = os.environ.get("BET_PAGE_PASSPHRASE")
@@ -118,8 +121,13 @@ def main():
 
     salt_b64, iv_b64, ct_b64 = encrypt(plaintext, passphrase)
 
+    build_id = args.build_id or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Short hash of the plaintext so a publisher can tell whether the content changed
+    # without decrypting; 16 hex chars of a ~300KB document reveals nothing usable.
+    src_hash = hashlib.sha256(plaintext.encode("utf-8")).hexdigest()[:16]
     output = WRAPPER_TEMPLATE.format(
-        salt_b64=salt_b64, iv_b64=iv_b64, ct_b64=ct_b64, iterations=PBKDF2_ITERATIONS
+        salt_b64=salt_b64, iv_b64=iv_b64, ct_b64=ct_b64, iterations=PBKDF2_ITERATIONS,
+        build_id=build_id, src_hash=src_hash,
     )
 
     # ---- Safety checks on the FINAL output file, before it ever touches disk for real ----
