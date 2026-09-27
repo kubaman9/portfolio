@@ -50,6 +50,12 @@ It needs one repo secret, `MONGODB_URI`, for a read-only user on `betting_agent`
 and the Atlas network access list has to allow GitHub's runners. Until the secret
 exists, the workflow logs a warning and exits cleanly.
 
+The secret must be the full driver string, not the `mongosh` command Atlas shows:
+`mongodb+srv://USER:PASSWORD@cluster0.xn5vg0j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
+(URL-encode `@ : / ? # %` in the password, or use a letters-and-digits password).
+`OperationFailure` in the log means the user/password was rejected; a timeout
+means the host is wrong or Network Access is blocking the runner.
+
 The two paths below are fallbacks.
 
 
