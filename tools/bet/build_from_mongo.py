@@ -46,8 +46,22 @@ def main():
         print("BUILD REFUSED: MONGODB_URI is not set", file=sys.stderr)
         sys.exit(1)
 
-    db = MongoClient(uri, serverSelectionTimeoutMS=20000)["betting_agent"]
-    tpl = db.dashboard_template.find_one({"_id": "current"})
+    uri = uri.strip().strip('"').strip("'")
+    if not uri.startswith(("mongodb+srv://", "mongodb://")) or "@" not in uri:
+        # Never echo the value: the Actions log is public.
+        print("BUILD REFUSED: MONGODB_URI must be the full connection string "
+              "(mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/...), not just a password",
+              file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        db = MongoClient(uri, serverSelectionTimeoutMS=20000)["betting_agent"]
+        tpl = db.dashboard_template.find_one({"_id": "current"})
+    except Exception as e:
+        # Driver errors can include hosts or credentials, so only print the error class.
+        print(f"BUILD REFUSED: could not read Mongo ({type(e).__name__}) -- check the "
+              "MONGODB_URI user/password and Atlas Network Access", file=sys.stderr)
+        sys.exit(1)
     index = db.dashboard_index.find_one({"_id": "meta"})
     cfg = db.site_config.find_one({"_id": "current"}) or {}
     if not tpl or not index:
