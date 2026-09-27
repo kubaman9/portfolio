@@ -10,11 +10,16 @@ Mongo -- it never needs git access to this repo.
 Passphrase: BET_PAGE_PASSPHRASE from the environment if set, otherwise
 betting_agent.site_config.current.page_passphrase.
 
+With --template-file, that file (the repo copy, tools/bet/template.html) is the
+design source of truth: it is written into dashboard_template/current.html_shell
+when it differs, so Mongo and the published page always match the repo.
+
 With --existing, the build is skipped (exit 0, prints "unchanged") when the
 content hash matches the page already published, so a frequent cron only
 commits when the data actually changed.
 """
 import argparse
+import datetime
 import json
 import os
 import re
@@ -39,6 +44,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--existing", default=None)
+    ap.add_argument("--template-file", default=None)
     args = ap.parse_args()
 
     uri = os.environ.get("MONGODB_URI")
@@ -62,6 +68,19 @@ def main():
         print(f"BUILD REFUSED: could not read Mongo ({type(e).__name__}) -- check the "
               "MONGODB_URI user/password and Atlas Network Access", file=sys.stderr)
         sys.exit(1)
+    if args.template_file and os.path.exists(args.template_file):
+        shell = open(args.template_file, encoding="utf-8").read()
+        if "__ARCHIVE_JSON__" not in shell:
+            print("BUILD REFUSED: template file has no __ARCHIVE_JSON__ placeholder", file=sys.stderr)
+            sys.exit(1)
+        if not tpl or tpl.get("html_shell") != shell:
+            db.dashboard_template.update_one(
+                {"_id": "current"},
+                {"$set": {"html_shell": shell, "source": "repo:tools/bet/template.html",
+                          "updated_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}},
+                upsert=True)
+            print("template synced from repo into dashboard_template/current", file=sys.stderr)
+        tpl = {"html_shell": shell}
     index = db.dashboard_index.find_one({"_id": "meta"})
     cfg = db.site_config.find_one({"_id": "current"}) or {}
     if not tpl or not index:

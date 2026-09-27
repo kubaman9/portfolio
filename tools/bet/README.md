@@ -56,6 +56,11 @@ The secret must be the full driver string, not the `mongosh` command Atlas shows
 `OperationFailure` in the log means the user/password was rejected; a timeout
 means the host is wrong or Network Access is blocking the runner.
 
+**Design:** `tools/bet/template.html` is the page design (BetBot layout). The Action
+writes it into `dashboard_template/current.html_shell` whenever it changes, then
+builds from it, so changing the look is a commit to that file. It renders only what
+the daily run already writes to `dashboard_days` / `dashboard_index`.
+
 The two paths below are fallbacks.
 
 

@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>BetBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#070b10; --bg2:#0b1118; --panel:#0f161f; --panel2:#131c27; --line:#1c2733; --line2:#263443;
+  --text:#e8eef5; --muted:#8b98a8; --dim:#5d6b7b;
+  --green:#19e68c; --green2:#10b56d; --greenbg:rgba(25,230,140,.12);
+  --red:#f25f5c; --redbg:rgba(242,95,92,.13); --yellow:#facc15; --yellowbg:rgba(250,204,21,.12);
+  --blue:#60a5fa; --radius:14px;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+b{font-weight:700;color:#fff}
+.acc{color:var(--green);font-weight:600}
+.pos{color:var(--green)} .neg{color:var(--red)} .neu{color:var(--yellow)} .mut{color:var(--muted)} .dim{color:var(--dim)}
+.mono{font-family:var(--mono)}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+
+/* ---------- sidebar ---------- */
+.side{position:sticky;top:0;height:100vh;padding:22px 16px;border-right:1px solid var(--line);background:linear-gradient(180deg,#0a1017,#070b10);display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,#1ff29a,#0a9c5b);color:#04130b;font-weight:800;font-size:19px;box-shadow:0 0 22px rgba(25,230,140,.35)}
+.brand-name{font-weight:800;font-size:20px;letter-spacing:-.02em}
+.brand-sub{font:500 10.5px var(--mono);color:var(--muted);letter-spacing:.02em}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#c5d0dc;font-weight:500}
+.nav a:hover{background:var(--panel)}
+.nav a.on{background:var(--greenbg);color:var(--green)}
+.nav svg{width:18px;height:18px;flex:none}
+.edge{margin-top:auto;border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);padding:14px}
+.edge .k{font-size:12px;color:var(--muted)}
+.edge .v{font-size:22px;font-weight:700;margin:2px 0 0}
+.edge .s{font-size:11.5px;color:var(--muted)}
+.bot{display:flex;gap:10px;align-items:center;padding:6px}
+.bot .av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line2);font-weight:700;color:var(--green)}
+.bot .n{font-weight:600;font-size:12.5px}
+.bot .o{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+
+/* ---------- main ---------- */
+.main{min-width:0;padding:18px 26px 40px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.topbar h1{font-size:15px;font-weight:600;margin:0;color:var(--muted)}
+.topbar h1 b{color:var(--text)}
+.tb-right{display:flex;align-items:center;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:12.5px;color:#c9d4df;white-space:nowrap}
+.pill.btn:hover{border-color:var(--green);color:var(--green)}
+.pill[aria-disabled=true]{opacity:.35;pointer-events:none}
+.user{display:flex;align-items:center;gap:8px;font-weight:600}
+.user .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(145deg,#2a3a4c,#16212d);display:grid;place-items:center;font-size:12px;border:1px solid var(--line2)}
+
+.grid{display:grid;gap:16px}
+.g-today{grid-template-columns:minmax(0,1fr) 340px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.card-h h2{font-size:16px;font-weight:700;margin:0;letter-spacing:-.01em}
+.card-h .link{font-size:12px;color:var(--green);font-weight:600;white-space:nowrap}
+.sub{font-size:12px;color:var(--muted)}
+
+/* hero */
+.hero{position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--line);padding:26px 26px 22px;min-height:176px;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(25,230,140,.22),transparent 55%),radial-gradient(90% 120% at 70% 120%,rgba(96,165,250,.14),transparent 60%),linear-gradient(135deg,#0e1822,#0a1016)}
+.hero svg.field{position:absolute;right:-20px;top:0;height:100%;opacity:.5;pointer-events:none}
+.hero h2{font-size:32px;line-height:1.1;margin:0 0 8px;font-weight:800;letter-spacing:-.025em;position:relative}
+.hero h2 span{color:var(--green)}
+.hero p{margin:0 0 16px;color:#c3cfdb;max-width:560px;position:relative;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hero .row{display:flex;gap:10px;flex-wrap:wrap;position:relative;align-items:center}
+.cta{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#03140b;font-weight:700;border-radius:10px;padding:10px 16px;font-size:13.5px}
+.cta:hover{filter:brightness(1.08)}
+.ghost{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:rgba(15,22,31,.7);border-radius:10px;padding:9px 14px;font-size:13px;color:#c9d4df}
+.hero-badge{position:absolute;right:18px;bottom:18px;background:rgba(7,11,16,.78);border:1px solid var(--line2);border-radius:12px;padding:10px 14px;backdrop-filter:blur(6px)}
+.hero-badge .v{font-size:22px;font-weight:800}
+.hero-badge .l{font-size:11.5px;color:var(--muted)}
+
+/* chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:600;color:#c9d4df}
+.chip:hover{border-color:#3a4b5e}
+.chip.on{background:var(--green);border-color:var(--green);color:#03140b}
+.chip .n{font:600 10.5px var(--mono);opacity:.7}
+
+/* sport badge */
+.sb{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font:800 10px var(--mono);letter-spacing:.02em;color:#fff;background:var(--c,#334155);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.sb.lg{width:64px;height:64px;border-radius:16px;font-size:15px}
+.sb.sm{width:26px;height:26px;border-radius:8px;font-size:8.5px}
+.sb.xs{width:20px;height:20px;border-radius:6px;font-size:7px}
+
+/* pick rows */
+.plist{display:flex;flex-direction:column}
+.prow{display:grid;grid-template-columns:34px minmax(0,1.35fr) minmax(0,1.35fr) 64px 82px 66px 92px;gap:14px;align-items:center;padding:12px 8px;border-top:1px solid var(--line);border-radius:10px;cursor:pointer}
+.prow:first-child{border-top:0}
+.prow:hover{background:var(--panel2)}
+.prow.sel{background:var(--panel2);box-shadow:inset 3px 0 0 var(--green)}
+.prow .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .s{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .num{font-weight:700;font-family:var(--mono);font-size:13px}
+.prow .r{text-align:right}
+.phead{display:grid;grid-template-columns:34px minmax(0,1.35fr) minmax(0,1.35fr) 64px 82px 66px 92px;gap:14px;padding:0 8px 8px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.phead .r{text-align:right}
+.status{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.st-win{background:var(--greenbg);color:var(--green)}
+.st-loss{background:var(--redbg);color:var(--red)}
+.st-push{background:rgba(139,152,168,.15);color:#c3ccd6}
+.st-open{background:var(--yellowbg);color:var(--yellow)}
+.q{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;font:700 10.5px var(--mono);background:var(--panel2);border:1px solid var(--line2);color:#c3ccd6;margin-left:6px;vertical-align:1px}
+.q.A,.q.B{color:var(--green);border-color:rgba(25,230,140,.4)}
+.q.D{color:var(--yellow);border-color:rgba(250,204,21,.35)}
+.empty{padding:22px 10px;text-align:center;color:var(--muted);font-size:13px}
+
+/* quick stats */
+.qs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{border:1px solid var(--line);background:var(--bg2);border-radius:12px;padding:12px}
+.tile .l{font-size:11.5px;color:var(--muted)}
+.tile .v{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:3px 0 2px;white-space:nowrap}
+.tile .s{font-size:11px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--dim);font:500 9.5px var(--mono)}
+
+/* detail */
+.detail-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
+.detail-top h3{font-size:19px;margin:0;font-weight:800;letter-spacing:-.01em}
+.dboxes{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:8px;margin:14px 0 12px}
+.dbox{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg2);text-align:center}
+.dbox.hi{border-color:rgba(25,230,140,.5);background:var(--greenbg)}
+.dbox .v{font-size:19px;font-weight:800;font-family:var(--mono)}
+.dbox .l{font-size:11px;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tab{padding:8px 12px;font-size:13px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:var(--green);border-bottom-color:var(--green)}
+.prose{font-size:13.5px;color:#cdd7e1;line-height:1.55}
+.prose p{margin:0 0 8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:500}
+
+/* wire */
+.wire{display:flex;flex-direction:column}
+.witem{display:grid;grid-template-columns:auto minmax(0,1fr);gap:11px;padding:11px 0;border-top:1px solid var(--line)}
+.witem:first-child{border-top:0}
+.wk{font:700 9.5px var(--mono);padding:4px 6px;border-radius:6px;background:var(--panel2);color:#c3ccd6;height:fit-content;min-width:38px;text-align:center}
+.wk.inj{color:var(--red);background:var(--redbg)} .wk.wx{color:var(--blue);background:rgba(96,165,250,.13)} .wk.mkt{color:var(--green);background:var(--greenbg)} .wk.ros{color:var(--yellow);background:var(--yellowbg)}
+.witem .h{font-size:13px;font-weight:500;line-height:1.35}
+.witem .m{font-size:11px;color:var(--muted);margin-top:3px}
+.note{border-left:3px solid var(--line2);padding:6px 0 6px 11px;margin:0 0 10px}
+.note:last-child{margin-bottom:0}
+.note.lead{border-color:var(--green)} .note.source{border-color:var(--blue)} .note.exposure{border-color:var(--yellow)}
+.note .tg{font:600 10.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.note .tx{font-size:13px;color:#cdd7e1;margin-top:2px}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp.open{-webkit-line-clamp:unset;display:block}
+
+/* parlays */
+.slips{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.slip{border:1px solid var(--line);background:var(--bg2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.slip-h{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.stype{font:700 10.5px var(--mono);letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:4px 7px}
+.stype.sgp,.stype.prop{background:rgba(168,85,247,.16);color:#c79bff}
+.stype.lock,.stype.cross{background:rgba(96,165,250,.14);color:var(--blue)}
+.slip .ttl{font-weight:600;line-height:1.35}
+.legs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.legs li{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#cdd7e1}
+.legs li:before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:6px}
+.sstats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.sstats div{text-align:center}
+.sstats .v{font:700 13px var(--mono)} .sstats .l{font-size:10.5px;color:var(--muted)}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:600;text-align:left;padding:0 10px 9px}
+.tbl td{padding:10px;border-top:1px solid var(--line);vertical-align:middle}
+.tbl tr.click{cursor:pointer} .tbl tr.click:hover td{background:var(--panel2)}
+.tbl .r{text-align:right} .tbl .c{text-align:center}
+.tbl .ell{max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tscroll{overflow-x:auto;margin:0 -6px;padding:0 6px}
+
+/* breakdown */
+.brk{display:grid;grid-template-columns:170px minmax(0,1fr);gap:18px;align-items:center}
+.donut text{font-family:Inter,sans-serif}
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1.3fr) 58px minmax(60px,1fr) 64px;gap:10px;align-items:center;font-size:12.5px}
+.bar-row .k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{height:7px;border-radius:9px;background:#1a2430;overflow:hidden}
+.track i{display:block;height:100%;border-radius:9px;background:var(--green)}
+.track i.neg{background:var(--red)}
+
+/* day list */
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.dcard{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.dcard:hover{border-color:#34465a}
+.dcard .d{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.dcard .h{font-size:12.5px;color:var(--muted)}
+.dcard .f{display:flex;flex-wrap:wrap;gap:4px 12px;white-space:nowrap;font:600 12px var(--mono);color:#c3ccd6}
+
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.kpis .tile .v{font-size:20px}
+.kpis .tile .s{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* details */
+details.more{border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);padding:0}
+details.more>summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary:after{content:"+";color:var(--muted);font-size:18px}
+details.more[open]>summary:after{content:"–"}
+details.more>.in{padding:0 16px 16px}
+.sec-t{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px}
+.sec-t:first-child{margin-top:0}
+.lrow{padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+.lrow:first-of-type{border-top:0}
+.lrow .t{font-weight:600}
+.lrow .b{color:#c3cfdb;margin-top:2px}
+.search{background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;color:var(--text);font:inherit;font-size:13px;min-width:180px}
+.search:focus{outline:none;border-color:var(--green)}
+.footer{margin-top:26px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:500 11px var(--mono);color:var(--dim);letter-spacing:.04em}
+
+/* mobile nav */
+.mnav{display:none}
+.mtop{display:none}
+
+@media (max-width:1180px){
+  .g-today{grid-template-columns:minmax(0,1fr)}
+  .aside{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .aside>.card{min-width:0}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{display:none}
+  .main{padding:12px 14px calc(84px + env(safe-area-inset-bottom))}
+  .topbar{display:none}
+  .mtop{display:flex;align-items:center;justify-content:space-between;margin:2px 0 14px}
+  .mtop .brand{padding:0}
+  .aside{grid-template-columns:minmax(0,1fr)}
+  .mnav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(9,14,20,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+  .mnav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);font-weight:600;padding:4px 0}
+  .mnav a.on{color:var(--green)}
+  .mnav svg{width:21px;height:21px}
+  .hero{padding:20px 18px 18px;min-height:0}
+  .hero h2{font-size:25px}
+  .hero-badge{position:static;display:inline-block;margin-top:14px}
+  .phead{display:none}
+  .prow{grid-template-columns:34px minmax(0,1fr) auto;grid-template-areas:"b m st" "b p p" "b n n";gap:4px 12px;padding:12px 6px}
+  .prow>.c-b{grid-area:b;align-self:start}
+  .prow>.c-m{grid-area:m}
+  .prow>.c-p{grid-area:p}
+  .prow>.c-st{grid-area:st}
+  .prow>.c-o,.prow>.c-c,.prow>.c-e{display:none}
+  .prow>.c-n{grid-area:n;display:flex;gap:14px;font:600 12px var(--mono);color:#c3ccd6}
+  .dboxes{grid-template-columns:1fr 1fr}
+  .brk{grid-template-columns:minmax(0,1fr);justify-items:center}
+  .brk .bars{width:100%}
+  .sstats{grid-template-columns:repeat(2,1fr)}
+  .tbl .hide-m{display:none}
+  .tbl .ell{max-width:180px}
+  .bar-row{grid-template-columns:minmax(0,1fr) 50px minmax(40px,.8fr) 58px}
+}
+@media (min-width:901px){ .prow>.c-n{display:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main class="main">
+    <div class="mtop" id="mtop"></div>
+    <div class="topbar" id="topbar"></div>
+    <div id="view"></div>
+    <div class="footer"><span>DATA + AI = SMARTER BETS</span><span id="foot"></span><span>YOUR EDGE. EVERY DAY.</span></div>
+  </main>
+</div>
+<nav class="mnav" id="mnav"></nav>
+<script>
+var DATA = __ARCHIVE_JSON__;
+(function(){
+"use strict";
+var IX = DATA.index || {}, DAYS = DATA.days || {};
+var DATES = Object.keys(DAYS).sort();
+var LATEST = (IX.latest_day && DAYS[IX.latest_day]) ? IX.latest_day : DATES[DATES.length - 1];
+var IXDAYS = (IX.days || []).slice().sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+var state = { sport: "All", sel: 0, tab: "analysis", brk: "type", hsport: "All", hres: "All", hkind: "All", hq: "", hn: 40, wire: "All", pbrk: "type" };
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\^\^(.+?)\^\^/g, '<span class="acc">$1</span>').replace(/~~(.+?)~~/g, "<em>$1</em>"); }
+function plain(s){ return String(s == null ? "" : s).replace(/\*\*|\^\^|~~/g, ""); }
+function num(v){ var n = typeof v === "number" ? v : parseFloat(String(v == null ? "" : v).replace("−", "-")); return isFinite(n) ? n : null; }
+function fU(u, d){ u = num(u); if (u == null) return "—"; var s = Math.abs(u).toFixed(d == null ? 2 : d); return (u > 0.0049 ? "+" : u < -0.0049 ? "−" : "") + s + "u"; }
+function fP(v, d){ v = num(v); if (v == null) return "—"; return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d == null ? 1 : d) + "%"; }
+function cls(v){ v = num(v); return v == null ? "" : v > 0.0049 ? "pos" : v < -0.0049 ? "neg" : ""; }
+function pct(a, b){ return b ? Math.round(1000 * a / b) / 10 : null; }
+function norm(s){ return plain(s).toLowerCase().replace(/[−–—]/g, "-").replace(/moneyline/g, "ml").replace(/[^a-z0-9+\-. ]/g, " ").replace(/\s+/g, " ").trim(); }
+function odds(p){
+  var a = num(p.price_american); if (a != null && Math.abs(a) >= 100) return a;
+  var src = [p.line, p.price].join(" ").replace(/−/g, "-");
+  var m = src.match(/[+-]\d{3,4}(?!\d)/g); return m ? parseInt(m[m.length - 1], 10) : null;
+}
+function fO(o){ return o == null ? "—" : (o > 0 ? "+" : "−") + Math.abs(o); }
+function be(o){ if (o == null) return null; return o < 0 ? (-o) / (-o + 100) * 100 : 100 / (o + 100) * 100; }
+var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function dd(d){ var p = String(d).split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12)); }
+function fD(d, long){ if (!d) return ""; var x = dd(d); return (long ? WD[x.getUTCDay()] + ", " : "") + MON[x.getUTCMonth()] + " " + x.getUTCDate() + (long ? ", " + x.getUTCFullYear() : ""); }
+function fDs(d){ var x = dd(d); return MON[x.getUTCMonth()] + " " + x.getUTCDate(); }
+function fT(iso){ try { return new Date(iso).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET"; } catch (e) { return iso || ""; } }
+function rec(s){ var m = String(s || "").replace(/[–−]/g, "-").match(/(\d+)-(\d+)(?:-(\d+))?/); return m ? { W: +m[1], L: +m[2], P: +(m[3] || 0) } : null; }
+function first(s, n){ s = plain(s); var m = s.match(/^(.+?[.!?])(\s|$)/); var t = m ? m[1] : s; return n && t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : t; }
+function sides(m){ return plain(m).replace(/\s*\(.*?\)\s*/g, " ").trim().split(/\s+(?:@|vs\.?|v\.?|at)\s+/i); }
+function nick(t){ t = t.trim(); var w = t.split(/\s+/); if (w.length < 2) return t; var last = w[w.length - 1]; if (/^(FC|SC|CF|United|City|State|Sox|Jays|Knights|Wings|Leafs)$/i.test(last)) return w.slice(-2).join(" "); return last; }
+function shortM(m){ var s = sides(m); return s.length === 2 ? nick(s[0]) + (/ vs\.? /i.test(plain(m)) ? " vs " : " @ ") + nick(s[1]) : plain(m); }
+function shortB(b, m){ b = plain(b); sides(m || "").forEach(function(t){ t = t.trim(); if (t.split(/\s+/).length > 1 && b.indexOf(t) === 0) b = nick(t) + b.slice(t.length); }); return b.replace(/\bMoneyline\b/, "ML"); }
+function safe(fn, fallback){ try { return fn(); } catch (e) { if (window.console) console.error(e); return fallback == null ? "" : fallback; } }
+
+var SPORTS = { NFL:["#2563eb","NFL"], CFB:["#ea580c","CFB"], NCAAF:["#ea580c","CFB"], MLB:["#dc2626","MLB"], NBA:["#f59e0b","NBA"], WNBA:["#fb923c","WNBA"], NCAAB:["#0ea5e9","CBB"], NHL:["#0891b2","NHL"], UFC:["#be123c","UFC"], MMA:["#be123c","MMA"], Soccer:["#16a34a","SOC"], Boxing:["#7c3aed","BOX"], Tennis:["#ca8a04","TEN"], Golf:["#15803d","GOLF"], Multi:["#475569","MIX"] };
+function sm(s){ var k = String(s || "").trim(); var hit = SPORTS[k] || SPORTS[k.toUpperCase()] || SPORTS[k.charAt(0).toUpperCase() + k.slice(1).toLowerCase()]; return hit || ["#475569", (k || "?").slice(0, 3).toUpperCase()]; }
+function badge(s, size){ var m = sm(s); return '<span class="sb ' + (size || "") + '" style="--c:' + m[0] + '" title="' + esc(s) + '">' + esc(m[1]) + "</span>"; }
+function stat(r, u){
+  r = String(r || "OPEN").toUpperCase();
+  if (r === "WIN") return '<span class="status st-win">✓ ' + (u != null ? fU(u) : "Win") + "</span>";
+  if (r === "LOSS") return '<span class="status st-loss">✕ ' + (u != null ? fU(u) : "Loss") + "</span>";
+  if (r === "PUSH" || r === "VOID") return '<span class="status st-push">Push</span>';
+  return '<span class="status st-open">● Open</span>';
+}
+function q(a){ return a ? '<span class="q ' + esc(a) + '" title="Anchor quality ' + esc(a) + '">' + esc(a) + "</span>" : ""; }
+
+/* ---------- resolve grades: an OPEN row logged on day D is graded in a later day's graded_today ---------- */
+var GR = {};
+var PARLAYS = [];
+DATES.forEach(function(d){ (DAYS[d].graded_today || []).forEach(function(g){ var k = norm(g.bet), e = { on: d, result: g.result, units: g.units }; (GR[k] = GR[k] || []).push(e);
+  if (/^parlay\b/i.test(plain(g.bet))) PARLAYS.push({ on: d, result: g.result, units: g.units, words: norm(plain(g.bet).replace(/^parlay:?\s*/i, "")).split(" ").filter(function(w){ return w.length > 1 || /\d/.test(w); }) }); }); });
+function resolve(p, day){
+  var r = String(p.result || "OPEN").toUpperCase();
+  if (r !== "OPEN") return p;
+  var hits = GR[norm(p.bet || p.shape)] || [];
+  if (!hits.length && p.shape) {
+    /* slips: graded_today logs them as "Parlay: A + B"; match when every word of that appears in the slip's legs */
+    var lk = " " + norm(plain(p.legs || "").replace(/\([^)]*\)/g, " ")) + " ";
+    PARLAYS.forEach(function(g){ if (g.words.length && g.words.every(function(w){ return lk.indexOf(" " + w + " ") >= 0; })) hits.push(g); });
+    hits.sort(function(a, b){ return a.on < b.on ? -1 : 1; });
+  }
+  for (var i = 0; i < hits.length; i++) if (hits[i].on >= day && String(hits[i].result).toUpperCase() !== "OPEN") {
+    var o = {}; for (var k in p) o[k] = p[k]; o.result = String(hits[i].result).toUpperCase(); o.units = hits[i].units; o._graded_on = hits[i].on; return o;
+  }
+  return p;
+}
+function stake(p){
+  var s = num(p.stake_units); if (s != null) return s;
+  var u = num(p.units), r = String(p.result || "").toUpperCase();
+  if (r === "LOSS" && u != null) return -u;
+  if (p.tier === "core") return 1;
+  return 0.5;
+}
+var ROWS = [];
+DATES.forEach(function(d){
+  var day = DAYS[d], seen = {};
+  (day.picks || []).forEach(function(p, i){ var x = resolve(p, d); var k = norm(x.bet) + "|" + (x.date || d); if (seen[k]) return; seen[k] = 1; ROWS.push({ kind: "pick", day: d, i: i, p: x }); });
+  (day.slips || []).forEach(function(s, i){ ROWS.push({ kind: "slip", day: d, i: i, p: resolve(s, d) }); });
+});
+function graded(r){ var x = String(r.p.result || "").toUpperCase(); return x === "WIN" || x === "LOSS" || x === "PUSH"; }
+function tally(rows){ var W = 0, L = 0, P = 0, u = 0, st = 0; rows.forEach(function(r){ var x = String(r.p.result || "").toUpperCase(); if (x === "WIN") W++; else if (x === "LOSS") L++; else if (x === "PUSH") P++; else return; u += num(r.p.units) || 0; st += stake(r.p); }); return { W: W, L: L, P: P, u: u, st: st, wr: pct(W, W + L), roi: st ? 100 * u / st : null }; }
+var ALL = tally(ROWS);
+var LAST = IXDAYS.length ? IXDAYS[IXDAYS.length - 1] : null;
+var RECORD = rec(LAST && LAST.record_after) || { W: ALL.W, L: ALL.L, P: ALL.P };
+var UNITS = LAST && num(LAST.units_after) != null ? num(LAST.units_after) : ALL.u;
+var ROI = ALL.st ? 100 * UNITS / ALL.st : null;
+function lastN(n){ var s = IXDAYS.slice(-n); var u = 0; s.forEach(function(x){ u += num(x.units_day) || 0; }); return u; }
+function rowsSince(n){ var cut = DATES.slice(-n)[0]; return ROWS.filter(function(r){ return r.day >= cut; }); }
+
+/* ---------- icons ---------- */
+var I = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+  target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>',
+  layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>',
+  hist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/></svg>',
+  perf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  left: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>',
+  right: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>',
+  up: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>'
+};
+var NAV = [["#/today", "Today", I.home, "today"], ["#/parlays", "Parlays", I.layers, "parlays"], ["#/history", "History", I.hist, "history"], ["#/performance", "Performance", I.perf, "performance"]];
+
+/* ---------- charts ---------- */
+function line(vals, labels, w, h, opt){
+  opt = opt || {};
+  if (!vals.length) return "";
+  var pad = opt.axis ? { l: 34, r: 20, t: 10, b: 20 } : { l: 2, r: 2, t: 4, b: 4 };
+  var mn = Math.min.apply(null, vals.concat([0])), mx = Math.max.apply(null, vals.concat([0]));
+  if (mx - mn < 1e-6) { mx += 1; mn -= 1; }
+  var X = function(i){ return pad.l + (vals.length === 1 ? (w - pad.l - pad.r) / 2 : i * (w - pad.l - pad.r) / (vals.length - 1)); };
+  var Y = function(v){ return pad.t + (mx - v) * (h - pad.t - pad.b) / (mx - mn); };
+  var d = vals.map(function(v, i){ return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); }).join(" ");
+  var id = "g" + Math.random().toString(36).slice(2, 8);
+  var col = opt.color || "#19e68c";
+  var s = '<svg class="chart" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none" role="img" aria-label="' + esc(opt.label || "trend") + '"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + col + '" stop-opacity=".32"/><stop offset="1" stop-color="' + col + '" stop-opacity="0"/></linearGradient></defs>';
+  if (opt.axis) {
+    [mx, (mx + mn) / 2, mn].forEach(function(v){ s += '<line x1="' + pad.l + '" x2="' + (w - pad.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#1c2733" stroke-width="1"/><text x="' + (pad.l - 5) + '" y="' + (Y(v) + 3) + '" text-anchor="end">' + (v > 0 ? "+" : "") + v.toFixed(v === 0 || Math.abs(v) >= 10 ? 0 : 1) + "</text>"; });
+    var step = Math.max(1, Math.ceil(labels.length / (opt.ticks || 7)));
+    labels.forEach(function(l, i){ if ((i % step === 0 && labels.length - 1 - i >= step / 2) || i === labels.length - 1) s += '<text x="' + X(i) + '" y="' + (h - 5) + '" text-anchor="middle">' + esc(l) + "</text>"; });
+  }
+  if (mn < 0 && mx > 0) s += '<line x1="' + pad.l + '" x2="' + (w - pad.r) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="#3a4b5e" stroke-dasharray="3 4"/>';
+  s += '<path d="' + d + " L" + X(vals.length - 1).toFixed(1) + " " + (h - pad.b) + " L" + X(0).toFixed(1) + " " + (h - pad.b) + ' Z" fill="url(#' + id + ')"/>';
+  s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+  s += '<circle cx="' + X(vals.length - 1) + '" cy="' + Y(vals[vals.length - 1]) + '" r="3.5" fill="' + col + '"/>';
+  return s + "</svg>";
+}
+function donut(p, label){
+  var r = 52, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, p || 0));
+  return '<svg class="donut" width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="' + r + '" fill="none" stroke="#1a2430" stroke-width="14"/><circle cx="75" cy="75" r="' + r + '" fill="none" stroke="#19e68c" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (c * v / 100).toFixed(1) + " " + c.toFixed(1) + '" transform="rotate(-90 75 75)"/><text x="75" y="76" text-anchor="middle" fill="#fff" font-size="26" font-weight="800">' + (p == null ? "—" : Math.round(p) + "%") + '</text><text x="75" y="96" text-anchor="middle" fill="#8b98a8" font-size="11">' + esc(label) + "</text></svg>";
+}
+
+/* ---------- shell pieces ---------- */
+function route(){ var h = location.hash || "#/today"; var m = h.match(/^#\/day\/(\d{4}-\d{2}-\d{2})/); if (m) return { v: "day", d: DAYS[m[1]] ? m[1] : LATEST }; var k = h.replace(/^#\/?/, "").split("/")[0]; if (k === "parlays" || k === "history" || k === "performance") return { v: k }; return { v: "day", d: LATEST, today: true }; }
+function navKey(r){ return r.v === "day" ? (r.d === LATEST ? "today" : "history") : r.v; }
+function renderSide(r){
+  var key = navKey(r);
+  var spark = IXDAYS.slice(-14).map(function(x){ return num(x.units_after) || 0; });
+  var l14 = lastN(14);
+  var d = DAYS[LATEST] || {};
+  document.getElementById("side").innerHTML =
+    '<div class="brand"><div class="logo">B</div><div><div class="brand-name">BetBot</div><div class="brand-sub">Smarter picks. Better decisions.</div></div></div>' +
+    '<nav class="nav">' + NAV.map(function(n){ return '<a href="' + n[0] + '" class="' + (key === n[3] ? "on" : "") + '">' + n[2] + n[1] + "</a>"; }).join("") + "</nav>" +
+    '<div class="edge"><div class="k">Your edge · last 14 days</div><div class="v ' + cls(l14) + '">' + fU(l14) + '</div><div class="s">' + esc(RECORD.W + "–" + RECORD.L + (RECORD.P ? "–" + RECORD.P : "")) + " all time · " + fU(UNITS) + "</div>" + line(spark, [], 200, 54, { color: l14 >= 0 ? "#19e68c" : "#f25f5c", label: "units, last 14 days" }) + "</div>" +
+    '<div class="bot"><div class="av">B</div><div><div class="n">BetBot</div><div class="o"><span class="dot"></span>' + esc(d.run_label || "run") + " · " + esc(d.generated_at ? fT(d.generated_at) : "") + "</div></div></div>";
+  document.getElementById("mnav").innerHTML = NAV.map(function(n){ return '<a href="' + n[0] + '" class="' + (key === n[3] ? "on" : "") + '">' + n[2] + "<span>" + n[1] + "</span></a>"; }).join("");
+  document.getElementById("mtop").innerHTML = '<div class="brand"><div class="logo">B</div><div><div class="brand-name">BetBot</div></div></div><span class="pill mono ' + cls(UNITS) + '">' + esc(RECORD.W + "–" + RECORD.L) + " · " + fU(UNITS) + "</span>";
+  document.getElementById("foot").textContent = "UPDATED " + (IX.updated_at ? fT(IX.updated_at).toUpperCase() : "");
+}
+function topbar(title, extra){
+  document.getElementById("topbar").innerHTML = '<h1>' + title + '</h1><div class="tb-right">' + (extra || "") + '<span class="user"><span class="av">K</span>Kuba</span></div>';
+}
+
+/* ---------- DAY / TODAY ---------- */
+function dayNav(d){
+  var i = DATES.indexOf(d), prev = DATES[i - 1], next = DATES[i + 1];
+  return '<a class="pill btn" aria-disabled="' + !prev + '" href="' + (prev ? "#/day/" + prev : "#") + '">' + I.left + (prev ? fDs(prev) : "Prev") + "</a>" +
+    '<a class="pill btn" aria-disabled="' + !next + '" href="' + (next ? "#/day/" + next : "#") + '">' + (next ? fDs(next) : "Next") + I.right + "</a>" +
+    (d !== LATEST ? '<a class="pill btn" href="#/today">Today</a>' : "");
+}
+function heroSvg(){
+  return '<svg class="field" viewBox="0 0 400 200" fill="none" stroke="#19e68c" stroke-opacity=".35"><ellipse cx="300" cy="215" rx="230" ry="95"/><ellipse cx="300" cy="215" rx="170" ry="66"/><ellipse cx="300" cy="215" rx="110" ry="40"/><path d="M70 200 300 60 530 200M140 200 300 60 460 200M210 200 300 60 390 200M300 200V60" stroke-opacity=".18"/><circle cx="300" cy="60" r="3" fill="#19e68c" fill-opacity=".7"/></svg>';
+}
+function pickRow(p, i, sel){
+  var o = odds(p), b = be(o), conf = num(p.confidence), ev = num(p.ev_pct), st = num(p.stake_units);
+  var meta = [p.game_time, p.bet_type || p.tier, p.book].filter(Boolean).map(plain).join(" · ");
+  return '<div class="prow' + (sel ? " sel" : "") + '" data-i="' + i + '" tabindex="0">' +
+    '<div class="c-b">' + badge(p.sport) + "</div>" +
+    '<div class="c-m"><div class="t" title="' + esc(plain(p.matchup)) + '">' + esc(shortM(p.matchup)) + '</div><div class="s">' + esc(meta || p.sport) + "</div></div>" +
+    '<div class="c-p"><div class="t" title="' + esc(plain(p.bet)) + '">' + esc(shortB(p.bet, p.matchup)) + q(p.anchor_quality) + '</div><div class="s">' + esc(plain(p.bet_type || p.line || "")) + "</div></div>" +
+    '<div class="c-o"><div class="num">' + fO(o) + '</div><div class="s">Odds</div></div>' +
+    '<div class="c-c"><div class="num ' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "%" : "—") + '</div><div class="s">' + (b != null ? "BE " + b.toFixed(1) + "%" : "Confidence") + "</div></div>" +
+    '<div class="c-e"><div class="num ' + cls(ev) + '">' + fP(ev) + '</div><div class="s">EV</div></div>' +
+    '<div class="c-st r">' + stat(p.result, p.units) + '<div class="s" style="margin-top:4px">' + (st != null ? st + "u stake" : "") + "</div></div>" +
+    '<div class="c-n"><span>' + fO(o) + '</span><span class="' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "% conf" : "") + '</span><span class="' + cls(ev) + '">' + (ev != null ? fP(ev) + " EV" : "") + "</span></div>" +
+    "</div>";
+}
+function detail(p){
+  if (!p) return '<div class="empty">No single picks on this card.</div>';
+  var o = odds(p), b = be(o), conf = num(p.confidence), ev = num(p.ev_pct);
+  var why = [p.line_gap_thesis, p.why, p.reasoning].filter(Boolean);
+  var tabs = [["analysis", "Analysis"], ["risk", "Risk"], ["data", "Details"]];
+  var body = "";
+  if (state.tab === "analysis") body = why.length ? why.map(function(t){ return "<p>" + md(t) + "</p>"; }).join("") + (p.note ? '<p class="mut">' + md(p.note) + "</p>" : "") : '<p class="mut">No write-up logged for this pick.</p>';
+  else if (state.tab === "risk") body = p.wrong_if ? "<p>" + md(p.wrong_if) + "</p>" : '<p class="mut">No "wrong if" logged for this pick.</p>';
+  else body = '<dl class="kv">' + [["Book", p.book], ["Line", p.line], ["Bet type", p.bet_type], ["Tier", p.tier], ["Break-even", b != null ? b.toFixed(1) + "%" : null], ["Anchor quality", p.anchor_quality], ["Thesis", p.thesis_quality], ["Close", p.close], ["CLV", p.clv != null ? fP(p.clv, 2) : null], ["Line CLV", p.clv_points != null ? p.clv_points + " pts" : null], ["Graded", p._graded_on ? fD(p._graded_on) : null]].filter(function(x){ return x[1] != null && x[1] !== ""; }).map(function(x){ return "<dt>" + x[0] + "</dt><dd>" + esc(plain(x[1])) + "</dd>"; }).join("") + "</dl>";
+  return '<div class="detail-top">' + badge(p.sport, "lg") + '<div style="min-width:0"><h3>' + esc(plain(p.bet)) + '</h3><div class="sub">' + esc(plain(p.matchup)) + (p.game_time ? " · " + esc(p.game_time) : "") + "</div></div></div>" +
+    '<div class="dboxes"><div class="dbox hi"><div class="v pos">' + (conf != null ? conf + "%" : "—") + '</div><div class="l">Confidence</div></div><div class="dbox"><div class="v">' + fO(o) + '</div><div class="l">Odds</div></div><div class="dbox"><div class="v ' + cls(ev) + '">' + fP(ev) + '</div><div class="l">EV</div></div><div class="dbox"><div class="v">' + (b != null ? b.toFixed(0) + "%" : "—") + '</div><div class="l">Break-even</div></div></div>' +
+    '<div class="tabs">' + tabs.map(function(t){ return '<button class="tab' + (state.tab === t[0] ? " on" : "") + '" data-tab="' + t[0] + '">' + t[1] + "</button>"; }).join("") + '</div><div class="prose">' + body + "</div>";
+}
+function slipType(s){
+  var t = String(s.slip_type || "").toLowerCase(), sh = plain(s.shape).toLowerCase();
+  if (t === "sgp" || /sgp|same.game/.test(sh)) return ["sgp", "SGP"];
+  if (t.indexOf("prop") >= 0 || /prop/.test(sh)) return ["prop", "Prop parlay"];
+  if (t.indexOf("lock") >= 0) return ["lock", "Lock"];
+  return ["cross", "Cross-game"];
+}
+function legsOf(s){
+  if (s.legs_detail && s.legs_detail.length) return s.legs_detail.map(function(l){ return plain(l.selection || "") + (l.price_american != null ? " (" + fO(num(l.price_american)) + ")" : "") + (l.status && l.status !== "OPEN" ? " — " + l.status : ""); });
+  return plain(s.legs || "").split(/\s+\+\s+|\s·\s/).filter(Boolean);
+}
+function slipCard(s){
+  var t = slipType(s), ev = num(s.ev_pct);
+  return '<div class="slip"><div class="slip-h"><div style="display:flex;gap:8px;align-items:center">' + badge(s.sport || "Multi", "sm") + '<span class="stype ' + t[0] + '">' + t[1] + "</span>" + q(s.anchor_quality) + "</div>" + stat(s.result, s.units) + "</div>" +
+    '<div class="ttl">' + esc(plain(s.shape)) + '</div><ul class="legs">' + legsOf(s).map(function(l){ return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" +
+    '<div class="sstats"><div><div class="v">' + esc(plain(s.price || "—").replace(/\s*naive/i, "")) + '</div><div class="l">Price</div></div><div><div class="v">' + esc(plain(s.be || "—")) + '</div><div class="l">Break-even</div></div><div><div class="v ' + cls(ev) + '">' + fP(ev) + '</div><div class="l">EV</div></div><div><div class="v">' + (num(s.stake_units) != null ? num(s.stake_units) + "u" : "—") + '</div><div class="l">Stake</div></div></div>' +
+    (s.note ? '<div class="sub clamp">' + md(s.note) + "</div>" : "") + "</div>";
+}
+function wireItems(d){
+  var out = [];
+  ["the_wire", "injury_wire", "line_movement"].forEach(function(k){ (d[k] || []).forEach(function(w){ out.push(w); }); });
+  return out;
+}
+var KIND = { inj: "INJ", wx: "WX", ros: "ROS", mkt: "MKT", src: "SRC" };
+function renderWire(d){
+  var items = wireItems(d);
+  if (!items.length) return "";
+  var kinds = []; items.forEach(function(w){ var k = w.kind || "src"; if (kinds.indexOf(k) < 0) kinds.push(k); });
+  var f = state.wire === "All" ? items : items.filter(function(w){ return (w.kind || "src") === state.wire; });
+  return '<div class="card"><div class="card-h"><h2>The Wire</h2><span class="sub">' + items.length + " items</span></div>" +
+    (kinds.length > 1 ? '<div class="chips" style="margin-bottom:8px">' + ["All"].concat(kinds).map(function(k){ return '<button class="chip' + (state.wire === k ? " on" : "") + '" data-wire="' + esc(k) + '">' + esc(k === "All" ? "All" : KIND[k] || k.toUpperCase()) + "</button>"; }).join("") + "</div>" : "") +
+    '<div class="wire">' + f.map(function(w){ var k = w.kind || "src"; return '<div class="witem"><span class="wk ' + esc(k) + '">' + esc(KIND[k] || k.toUpperCase()) + '</span><div><div class="h">' + md(w.headline) + '</div><div class="m">' + esc(plain([w.meta, w.time && String(w.meta || "").indexOf(w.time) < 0 ? w.time : ""].filter(Boolean).join(" · "))) + "</div></div></div>"; }).join("") + "</div></div>";
+}
+function renderNotes(d){
+  var a = d.alerts || [];
+  if (!a.length) return "";
+  return '<div class="card"><div class="card-h"><h2>Run notes</h2><span class="sub">' + esc(d.run_label || "") + "</span></div>" +
+    a.map(function(n){ return '<div class="note ' + esc(n.tone || "") + '"><div class="tg">' + esc(plain(n.tag)) + '</div><div class="tx clamp" data-clamp>' + md(n.text) + "</div></div>"; }).join("") + "</div>";
+}
+function renderGraded(d){
+  var g = d.graded_today || [];
+  if (!g.length) return "";
+  var W = 0, L = 0, u = 0; g.forEach(function(x){ var r = String(x.result).toUpperCase(); if (r === "WIN") W++; else if (r === "LOSS") L++; u += num(x.units) || 0; });
+  return '<div class="card"><div class="card-h"><h2>Graded last night</h2><span class="mono ' + cls(u) + '" style="font-weight:700">' + W + "–" + L + " · " + fU(u) + "</span></div>" +
+    '<div class="tscroll"><table class="tbl"><tbody>' + g.map(function(x){ return "<tr><td>" + badge(x.sport, "sm") + '</td><td class="ell"><div style="font-weight:600">' + esc(plain(x.bet)) + '</div><div class="sub">' + esc(plain(x.matchup || "")) + (x.note ? " · " + esc(plain(x.note)) : "") + '</div></td><td class="r">' + stat(x.result, x.units) + "</td></tr>"; }).join("") + "</tbody></table></div></div>";
+}
+function renderPasses(d){
+  var items = ((d.card || {}).items || []).filter(function(x){ return x.kind === "held"; });
+  if (!items.length) return "";
+  return '<div class="card"><div class="card-h"><h2>Looked at, passed</h2><span class="sub">' + items.length + "</span></div>" +
+    items.map(function(x){ return '<div class="lrow"><div style="display:flex;gap:10px;align-items:center">' + badge(x.sport, "sm") + '<div style="min-width:0"><div class="t">' + md(x.title) + '</div><div class="sub">' + esc(plain([x.game, x.priced, x.priced_b].filter(Boolean).join(" · "))) + "</div></div></div>" + (x.note ? '<div class="b sub" style="margin-top:6px">' + md(x.note) + "</div>" : "") + "</div>"; }).join("") + "</div>";
+}
+function quickStats(d, date){
+  var r7 = tally(rowsSince(7));
+  var wr = pct(RECORD.W, RECORD.W + RECORD.L);
+  var diff = r7.wr != null && wr != null ? r7.wr - wr : null;
+  var today = IXDAYS.filter(function(x){ return x.date === date; })[0] || {};
+  var chartDays = IXDAYS.filter(function(x){ return x.date <= date; }).slice(-14);
+  return '<div class="card"><div class="card-h"><h2>Quick stats</h2><span class="sub">all time</span></div><div class="qs">' +
+    '<div class="tile"><div class="l">Record</div><div class="v">' + RECORD.W + "–" + RECORD.L + (RECORD.P ? '<span class="mut" style="font-size:14px">–' + RECORD.P + "</span>" : "") + '</div><div class="s">singles + parlays</div></div>' +
+    '<div class="tile"><div class="l">Win rate</div><div class="v">' + (wr != null ? wr.toFixed(1) + "%" : "—") + '</div><div class="s ' + cls(diff) + '">' + (diff != null ? (diff >= 0 ? "+" : "−") + Math.abs(diff).toFixed(1) + " pts last 7d" : "") + "</div></div>" +
+    '<div class="tile"><div class="l">ROI</div><div class="v ' + cls(ROI) + '">' + fP(ROI) + '</div><div class="s">on graded stake</div></div>' +
+    '<div class="tile"><div class="l">Units</div><div class="v ' + cls(UNITS) + '">' + fU(UNITS) + '</div><div class="s ' + cls(today.units_day) + '">' + (today.units_day != null ? fU(today.units_day) + " this day" : "") + "</div></div>" +
+    '</div><div class="card-h" style="margin:16px 0 6px"><h2 style="font-size:14px">Recent performance</h2><span class="sub">cumulative units</span></div>' +
+    line(chartDays.map(function(x){ return num(x.units_after) || 0; }), chartDays.map(function(x){ return fDs(x.date); }), 320, 140, { axis: true, ticks: 5, color: "#19e68c", label: "cumulative units" }) + "</div>";
+}
+function pastPicks(limit){
+  var g = ROWS.filter(graded).slice().sort(function(a, b){ return a.day < b.day ? 1 : a.day > b.day ? -1 : 0; }).slice(0, limit);
+  return '<div class="card"><div class="card-h"><h2>Past picks &amp; results</h2><a class="link" href="#/history">View all →</a></div><div class="tscroll"><table class="tbl"><thead><tr><th>Date</th><th class="hide-m">Sport</th><th>Pick</th><th class="r hide-m">Odds</th><th class="r">Result</th></tr></thead><tbody>' +
+    g.map(function(r){ var p = r.p; return '<tr class="click" data-go="#/day/' + r.day + '"><td class="mono" style="white-space:nowrap">' + fDs(r.day) + '</td><td class="hide-m">' + badge(p.sport || "Multi", "sm") + '</td><td class="ell">' + esc(plain(r.kind === "slip" ? p.shape : p.bet)) + '</td><td class="r mono hide-m">' + fO(odds(p)) + '</td><td class="r">' + stat(p.result, p.units) + "</td></tr>"; }).join("") + "</tbody></table></div></div>";
+}
+function brkRows(key){
+  var st = IX.stats || {};
+  if (key === "type") return (IX.bet_types || []).map(function(x){ return { k: x.k, W: x.W, L: x.L, u: x.u }; });
+  if (key === "sport") return (st.sport || []).map(function(x){ return { k: x.k, W: x.W, L: x.L, u: x.u, lo: x.lo, hi: x.hi }; });
+  if (key === "structure") return (st.structure || []).map(function(x){ return { k: x.k.replace(/\s*\(stats collection\)/i, ""), W: x.W, L: x.L, u: x.u, lo: x.lo, hi: x.hi }; });
+  if (key === "conf") return (st.conf_band || []).map(function(x){ return { k: x.k, W: x.W, L: x.L, u: x.u, lo: x.lo, hi: x.hi }; });
+  if (key === "tier") return (st.tier || []).map(function(x){ return { k: x.k, W: x.W, L: x.L, u: x.u, lo: x.lo, hi: x.hi }; });
+  if (key === "anchor") return (st.anchor || []).map(function(x){ return { k: x.k, W: x.W, L: x.L, u: x.u }; });
+  return [];
+}
+function bars(rows){
+  if (!rows.length) return '<div class="empty">No data yet.</div>';
+  var mu = Math.max.apply(null, rows.map(function(r){ return Math.abs(num(r.u) || 0); }).concat([0.01]));
+  return '<div class="bars">' + rows.map(function(r){ var n = r.W + r.L, w = pct(r.W, n); return '<div class="bar-row" title="' + esc(r.lo != null ? "95% range " + r.lo + "–" + r.hi + "%" : "") + '"><span class="k">' + esc(r.k) + '</span><span class="mono mut">' + r.W + "–" + r.L + '</span><span class="track"><i style="width:' + (w || 0) + '%"></i></span><span class="mono r ' + cls(r.u) + '" style="text-align:right;font-weight:700">' + fU(r.u) + "</span></div>"; }).join("") + "</div>";
+}
+var BRK = [["type", "By type"], ["sport", "By sport"], ["structure", "Structure"], ["conf", "Confidence"], ["tier", "Tier"]];
+function breakdown(stateKey, tabs){
+  var key = state[stateKey];
+  var wr = pct(RECORD.W, RECORD.W + RECORD.L);
+  var win = 0, loss = 0; ROWS.forEach(function(r){ var u = num(r.p.units); if (!graded(r) || u == null) return; if (u > 0) win += u; else loss += u; });
+  return '<div class="card"><div class="card-h"><h2>Performance breakdown</h2><a class="link" href="#/performance">Details →</a></div>' +
+    '<div class="tabs">' + tabs.map(function(t){ return '<button class="tab' + (key === t[0] ? " on" : "") + '" data-brk="' + t[0] + '" data-bk="' + stateKey + '">' + t[1] + "</button>"; }).join("") + "</div>" +
+    '<div class="brk"><div style="text-align:center">' + donut(wr, "win rate") +
+    '<div class="mono" style="font-size:12px;margin-top:6px"><span class="pos">' + fU(win, 1) + '</span> won · <span class="neg">' + fU(loss, 1) + "</span> lost</div></div>" + bars(brkRows(key)) + "</div></div>";
+}
+function extras(d){
+  var parts = [];
+  if (d.exposure) parts.push(['<div class="sec-t">Exposure</div>', '<div class="prose"><p>' + md(d.exposure.sub) + "</p>" + (d.exposure.rows && d.exposure.rows.length ? '<table class="tbl"><tbody>' + d.exposure.rows.map(function(x){ return "<tr><td>" + md(x.game) + '</td><td class="r mono">' + esc(x.tickets) + '</td><td class="r mono">' + esc(x.units) + "u</td></tr>"; }).join("") + "</tbody></table>" : "") + (d.exposure.note ? '<p class="mut">' + md(d.exposure.note) + "</p>" : "") + "</div>"]);
+  if (d.fight_night) parts.push(['<div class="sec-t">Fight night</div>', '<div class="prose">' + (d.fight_night.sec_note ? "<p>" + md(d.fight_night.sec_note) + "</p>" : "") + (d.fight_night.blocks || []).map(function(b){ return "<p><b>" + esc(plain(b.title)) + "</b> " + md(b.text) + "</p>"; }).join("") + "</div>"]);
+  if (d.full_slate && d.full_slate.length) parts.push(['<div class="sec-t">Full slate</div>', d.full_slate.map(function(x){ return '<div class="lrow"><div class="t">' + md(x.game) + ' <span class="mono mut">' + esc(plain(x.line || "")) + '</span></div><div class="b">' + md(x.read || "") + "</div></div>"; }).join("")]);
+  if ((d.tomorrow && d.tomorrow.length) || (d.week_ahead && d.week_ahead.length)) parts.push(['<div class="sec-t">Coming up</div>', (d.tomorrow || []).map(function(x){ return '<div class="lrow"><div class="b">' + md(typeof x === "string" ? x : (x.what || x.text || JSON.stringify(x))) + "</div></div>"; }).join("") + (d.week_ahead || []).map(function(x){ return '<div class="lrow"><div class="t">' + esc(plain(x.when || "")) + " · " + md(x.what || "") + '</div><div class="b">' + md(x.note || "") + "</div></div>"; }).join("")]);
+  if (d.hoosier) parts.push(['<div class="sec-t">Hoosier corner</div>', '<div class="prose"><p>' + md(typeof d.hoosier === "string" ? d.hoosier : JSON.stringify(d.hoosier)) + "</p></div>"]);
+  if (d.lessons && d.lessons.length) parts.push(['<div class="sec-t">Lessons</div>', d.lessons.map(function(x){ return '<div class="lrow"><div class="t">' + md(x.t) + ' <span class="sub">' + esc(plain(x.n || "")) + '</span></div><div class="b">' + md(x.b) + "</div></div>"; }).join("")]);
+  if (d.playbook_block) parts.push(['<div class="sec-t">Playbook</div>', '<div class="prose"><p>' + md(d.playbook_block.summary || "") + "</p></div>" + (d.playbook_block.rows || []).map(function(x){ return '<div class="lrow"><div class="t">' + md(x.title) + ' <span class="sub">' + esc(plain(x.meta || "")) + '</span></div><div class="b">' + md(x.rule || "") + (x.metric ? ' <span class="mono mut">' + esc(plain(x.metric)) + "</span>" : "") + "</div></div>"; }).join("")]);
+  if (d.study_hall) parts.push(['<div class="sec-t">Study hall</div>', '<div class="prose"><p>' + md(typeof d.study_hall === "string" ? d.study_hall : (d.study_hall.text || JSON.stringify(d.study_hall))) + "</p></div>"]);
+  if (d.ev_note) parts.push(['<div class="sec-t">EV note</div>', '<div class="prose"><p>' + md(d.ev_note) + "</p></div>"]);
+  if (d.leagues_unchecked && d.leagues_unchecked.length) parts.push(['<div class="sec-t">Leagues not checked</div>', '<div class="prose"><p>' + esc(d.leagues_unchecked.map(function(x){ return typeof x === "string" ? x : plain(x.league || x.name || JSON.stringify(x)); }).join(" · ")) + "</p></div>"]);
+  if (d.footer) parts.push(['<div class="sec-t">Footer</div>', '<div class="prose"><p class="mut">' + md(d.footer) + "</p></div>"]);
+  if (d.artifact_url_for_that_day) parts.push(['<div class="sec-t">Original briefing</div>', '<a class="link" style="color:var(--green)" href="' + esc(d.artifact_url_for_that_day) + '" target="_blank" rel="noopener">Open the artifact for this day →</a>']);
+  if (!parts.length) return "";
+  return '<details class="more"><summary>More from this run</summary><div class="in">' + parts.map(function(p){ return p.join(""); }).join("") + "</div></details>";
+}
+function renderDay(r){
+  var date = r.d, d = DAYS[date] || {};
+  var picks = (d.picks || []).map(function(p){ return resolve(p, date); });
+  var slips = (d.slips || []).map(function(s){ return resolve(s, date); });
+  var sports = []; picks.concat(slips).forEach(function(p){ var s = p.sport || "Multi"; if (sports.indexOf(s) < 0) sports.push(s); });
+  if (state.sport !== "All" && sports.indexOf(state.sport) < 0) state.sport = "All";
+  var fp = picks.map(function(p, i){ return { p: p, i: i }; }).filter(function(x){ return state.sport === "All" || x.p.sport === state.sport; });
+  var fs = slips.filter(function(s){ return state.sport === "All" || (s.sport || "Multi") === state.sport; });
+  if (!picks[state.sel]) state.sel = 0;
+  var stakeSum = 0; picks.concat(slips).forEach(function(p){ stakeSum += num(p.stake_units) || 0; });
+  var isToday = date === LATEST;
+  var l7 = lastN(7);
+  var cnt = {}; picks.concat(slips).forEach(function(p){ var s = p.sport || "Multi"; cnt[s] = (cnt[s] || 0) + 1; });
+  topbar((isToday ? "Today · " : "") + "<b>" + esc(fD(date, true)) + "</b>", dayNav(date));
+  var hero = '<section class="hero">' + heroSvg() +
+    "<h2>" + (isToday ? "Today’s <span>Top Picks</span>" : "Picks · <span>" + esc(fD(date)) + "</span>") + "</h2>" +
+    "<p>" + esc(first(d.headline, 190)) + "</p>" +
+    '<div class="row"><a class="cta" href="#picks" data-scroll="picks">View all picks ' + I.arrow + '</a><span class="ghost mono">' + picks.length + " picks · " + slips.length + " parlays" + (stakeSum ? " · " + stakeSum.toFixed(2).replace(/\.?0+$/, "") + "u" : "") + "</span></div>" +
+    '<div class="hero-badge"><div class="v ' + cls(l7) + '">' + fU(l7) + '</div><div class="l">Last 7 days</div></div></section>';
+  var chips = '<div class="chips">' + ["All"].concat(sports).map(function(s){ return '<button class="chip' + (state.sport === s ? " on" : "") + '" data-sport="' + esc(s) + '">' + (s === "All" ? "All" : badge(s, "xs")) + (s === "All" ? "" : esc(s)) + ' <span class="n">' + (s === "All" ? picks.length + slips.length : cnt[s]) + "</span></button>"; }).join("") + "</div>";
+  var featured = '<div class="card" id="picks"><div class="card-h"><h2>Featured picks</h2><span class="sub">' + (fp.length ? "tap a pick for the breakdown" : "") + "</span></div>" +
+    (fp.length ? '<div class="phead"><span></span><span>Matchup</span><span>Pick</span><span>Odds</span><span>Conf.</span><span>EV</span><span class="r">Status</span></div><div class="plist">' + fp.map(function(x){ return pickRow(x.p, x.i, x.i === state.sel); }).join("") + "</div>" : '<div class="empty">No singles' + (state.sport !== "All" ? " in " + esc(state.sport) : "") + " on this card.</div>") + "</div>";
+  var detailCard = '<div class="card" id="detail"><div class="card-h"><h2>Pick detail</h2><span class="sub">' + (picks.length ? state.sel + 1 + " of " + picks.length : "") + "</span></div>" + detail(picks[state.sel]) + "</div>";
+  var parlays = '<div class="card"><div class="card-h"><h2>Parlay corner</h2><span class="sub">' + fs.length + " slip" + (fs.length === 1 ? "" : "s") + "</span></div>" + (fs.length ? '<div class="slips">' + fs.map(slipCard).join("") + "</div>" : '<div class="empty">No parlays on this card.</div>') + "</div>";
+  document.getElementById("view").innerHTML =
+    '<div class="grid g-today"><div class="col">' + hero + chips + featured + detailCard + parlays + "</div>" +
+    '<div class="col aside">' + quickStats(d, date) + renderNotes(d) + renderWire(d) + "</div></div>" +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + renderGraded(d) + renderPasses(d) + "</div>" +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + pastPicks(8) + breakdown("brk", BRK.slice(0, 3)) + "</div>" +
+    '<div style="margin-top:16px">' + extras(d) + "</div>";
+}
+
+/* ---------- HISTORY ---------- */
+function renderHistory(){
+  topbar("<b>History</b>", '<span class="pill mono">' + DATES.length + " days logged</span>");
+  var sports = []; ROWS.forEach(function(r){ var s = r.p.sport || "Multi"; if (sports.indexOf(s) < 0) sports.push(s); });
+  var ql = state.hq.toLowerCase();
+  var rows = ROWS.filter(function(r){
+    var p = r.p, res = String(p.result || "OPEN").toUpperCase();
+    if (state.hsport !== "All" && (p.sport || "Multi") !== state.hsport) return false;
+    if (state.hres !== "All" && res !== state.hres) return false;
+    if (state.hkind !== "All" && r.kind !== state.hkind) return false;
+    if (ql && (plain(p.bet || p.shape) + " " + plain(p.matchup || p.legs || "")).toLowerCase().indexOf(ql) < 0) return false;
+    return true;
+  }).sort(function(a, b){ return a.day < b.day ? 1 : a.day > b.day ? -1 : 0; });
+  var t = tally(rows);
+  var days = IXDAYS.slice().reverse();
+  var chip = function(key, val, label){ return '<button class="chip' + (state[key] === val ? " on" : "") + '" data-h="' + key + '" data-v="' + esc(val) + '">' + esc(label) + "</button>"; };
+  document.getElementById("view").innerHTML =
+    '<div class="card"><div class="card-h"><h2>All picks</h2><span class="mono" style="font-weight:700">' + t.W + "–" + t.L + (t.P ? "–" + t.P : "") + ' · <span class="' + cls(t.u) + '">' + fU(t.u) + "</span></span></div>" +
+    '<div class="chips" style="margin-bottom:10px">' + chip("hsport", "All", "All sports") + sports.map(function(s){ return chip("hsport", s, s); }).join("") + "</div>" +
+    '<div class="chips" style="margin-bottom:14px;align-items:center">' + chip("hres", "All", "Any result") + chip("hres", "WIN", "Wins") + chip("hres", "LOSS", "Losses") + chip("hres", "OPEN", "Open") + '<span style="width:10px"></span>' + chip("hkind", "All", "Singles + parlays") + chip("hkind", "pick", "Singles") + chip("hkind", "slip", "Parlays") + '<input class="search" id="hq" placeholder="Search team or player" value="' + esc(state.hq) + '"></div>' +
+    '<div class="tscroll"><table class="tbl"><thead><tr><th>Date</th><th></th><th>Pick</th><th class="hide-m">Matchup</th><th class="r hide-m">Odds</th><th class="r hide-m">Conf.</th><th class="r hide-m">EV</th><th class="r">Result</th></tr></thead><tbody>' +
+    rows.slice(0, state.hn).map(function(r){ var p = r.p; return '<tr class="click" data-go="#/day/' + r.day + '"><td class="mono" style="white-space:nowrap">' + fDs(r.day) + "</td><td>" + badge(p.sport || "Multi", "sm") + '</td><td class="ell" style="font-weight:600">' + (r.kind === "slip" ? '<span class="stype ' + slipType(p)[0] + '" style="margin-right:6px">' + slipType(p)[1] + "</span>" : "") + esc(plain(r.kind === "slip" ? p.shape : p.bet)) + '</td><td class="ell mut hide-m">' + esc(plain(p.matchup || p.legs || "")) + '</td><td class="r mono hide-m">' + fO(odds(p)) + '</td><td class="r mono hide-m">' + (num(p.confidence) != null ? p.confidence + "%" : "—") + '</td><td class="r mono hide-m ' + cls(p.ev_pct) + '">' + fP(p.ev_pct) + '</td><td class="r">' + stat(p.result, p.units) + "</td></tr>"; }).join("") +
+    "</tbody></table></div>" + (rows.length > state.hn ? '<div style="text-align:center;margin-top:12px"><button class="pill btn" id="more">Show more (' + (rows.length - state.hn) + ")</button></div>" : "") + (rows.length ? "" : '<div class="empty">Nothing matches those filters.</div>') + "</div>" +
+    '<div class="card-h" style="margin:22px 0 12px"><h2>Daily log</h2><span class="sub">tap a day to open its card</span></div>' +
+    '<div class="days">' + days.map(function(x){ return '<a class="dcard" href="#/day/' + x.date + '"><div class="d"><span>' + esc(fD(x.date, true)) + '</span><span class="mono ' + cls(x.units_day) + '">' + fU(x.units_day) + '</span></div><div class="h clamp">' + esc(first(x.headline, 150)) + '</div><div class="f"><span>' + esc(x.record_after || "") + '</span><span class="' + cls(x.units_after) + '">' + fU(x.units_after) + "</span><span>" + (x.picks != null ? x.picks + " picks" : "") + "</span>" + (x.backfilled ? '<span class="dim">backfilled</span>' : "") + "</div></a>"; }).join("") + "</div>";
+}
+
+/* ---------- PARLAYS ---------- */
+function renderParlays(){
+  topbar("<b>Parlay corner</b>", '<a class="pill btn" href="#/today">Today’s card</a>');
+  var today = (DAYS[LATEST].slips || []).map(function(s){ return resolve(s, LATEST); });
+  var all = ROWS.filter(function(r){ return r.kind === "slip"; }).sort(function(a, b){ return a.day < b.day ? 1 : -1; });
+  var by = {}; all.forEach(function(r){ var t = slipType(r.p)[1]; (by[t] = by[t] || []).push(r); });
+  var t = tally(all);
+  document.getElementById("view").innerHTML =
+    '<div class="card"><div class="card-h"><h2>Today’s slips</h2><span class="sub">' + esc(fD(LATEST, true)) + "</span></div>" + (today.length ? '<div class="slips">' + today.map(slipCard).join("") + "</div>" : '<div class="empty">No parlays on today’s card.</div>') + "</div>" +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' +
+    '<div class="card"><div class="card-h"><h2>Parlay record</h2><span class="mono" style="font-weight:700">' + t.W + "–" + t.L + ' · <span class="' + cls(t.u) + '">' + fU(t.u) + "</span></span></div>" + bars(Object.keys(by).map(function(k){ var x = tally(by[k]); return { k: k, W: x.W, L: x.L, u: x.u }; })) + '<div class="sub" style="margin-top:12px">Hit rate ' + (t.wr != null ? t.wr.toFixed(1) + "%" : "—") + " · ROI " + fP(t.roi) + "</div></div>" +
+    breakdown("pbrk", [["structure", "Structure"], ["type", "By type"]]) + "</div>" +
+    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Every slip</h2><span class="sub">' + all.length + '</span></div><div class="tscroll"><table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Slip</th><th class="r hide-m">Price</th><th class="r hide-m">EV</th><th class="r">Result</th></tr></thead><tbody>' +
+    all.map(function(r){ var p = r.p, st = slipType(p); return '<tr class="click" data-go="#/day/' + r.day + '"><td class="mono" style="white-space:nowrap">' + fDs(r.day) + '</td><td><span class="stype ' + st[0] + '">' + st[1] + '</span></td><td class="ell">' + esc(plain(p.shape)) + '</td><td class="r mono hide-m">' + esc(plain(p.price || "").replace(/\s*naive/i, "")) + '</td><td class="r mono hide-m ' + cls(p.ev_pct) + '">' + fP(p.ev_pct) + '</td><td class="r">' + stat(p.result, p.units) + "</td></tr>"; }).join("") + "</tbody></table></div></div>";
+}
+
+/* ---------- PERFORMANCE ---------- */
+function renderPerformance(){
+  topbar("<b>Performance</b>", '<span class="pill mono">updated ' + esc(IX.updated_at ? fT(IX.updated_at) : "") + "</span>");
+  var st = IX.stats || {}, tiles = (IX.kpi || {}).tiles || [];
+  var C = { pos: "pos", neg: "neg", neutral: "neu" };
+  var clv = st.clv || [], bands = IX.bands || {}, leaks = IX.leaks || [];
+  var bandTbl = function(title, rows){ return rows && rows.length ? '<div class="sec-t">' + esc(title) + '</div><table class="tbl"><thead><tr><th>Band</th><th class="r">Graded</th><th class="r">Open</th><th class="r">Units</th><th class="r hide-m">Mean CLV</th></tr></thead><tbody>' + rows.map(function(b){ return "<tr><td>" + esc(b.band) + '</td><td class="r mono">' + esc(b.n) + '</td><td class="r mono">' + esc(b.open == null ? "" : b.open) + '</td><td class="r mono ' + cls(b.units) + '">' + fU(b.units) + '</td><td class="r mono hide-m">' + (b.mean_clv != null ? fP(b.mean_clv, 2) : "—") + "</td></tr>"; }).join("") + "</tbody></table>" : ""; };
+  document.getElementById("view").innerHTML =
+    '<div class="kpis">' + tiles.map(function(t){ return '<div class="tile" title="' + esc(plain(t.s)) + '"><div class="l">' + esc(t.l) + '</div><div class="v ' + (C[t.c] || "") + '">' + esc(t.v) + '</div><div class="s">' + md(t.s) + "</div></div>"; }).join("") + "</div>" +
+    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, label: "cumulative units, all time" }) + "</div>" +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + breakdown("brk", BRK) +
+    '<div class="card"><div class="card-h"><h2>Closing line value</h2><span class="sub">did we beat the close?</span></div><div class="tscroll"><table class="tbl"><thead><tr><th>Segment</th><th class="r">Beat</th><th class="r">Mean</th><th class="r hide-m">Line CLV</th></tr></thead><tbody>' + clv.map(function(x){ return "<tr><td>" + esc(x.k) + '</td><td class="r mono">' + esc(x.beat) + "/" + esc(x.n) + '</td><td class="r mono ' + cls(x.mean) + '">' + fP(x.mean, 2) + '</td><td class="r mono hide-m">' + (x.pts_mean != null ? (x.pts_mean > 0 ? "+" : "") + x.pts_mean + " pts (n=" + x.pts_n + ")" : "—") + "</td></tr>"; }).join("") + "</tbody></table></div>" + (st.calibration ? '<div class="sec-t">Calibration</div><div class="prose"><p>' + md(st.calibration) + "</p></div>" : "") + "</div></div>" +
+    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Where the money leaks</h2><span class="sub">tap a row for the read</span></div>' + leaks.map(function(l){ return '<details class="lrow" style="border-top:1px solid var(--line)"><summary style="list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center"><span class="t">' + esc(l.seg) + '</span><span class="mono mut">' + esc(l.record) + '</span><span class="mono ' + ({ neg: "neg", pos: "pos" }[l.tone] || "") + '" style="font-weight:700;min-width:64px;text-align:right">' + esc(l.units) + '</span></summary><div class="b prose" style="margin-top:8px">' + md(l.read) + "</div></details>"; }).join("") + "</div>" +
+    '<details class="more" style="margin-top:16px"><summary>EV, thesis and anchor bands</summary><div class="in">' + bandTbl("EV bands", bands.ev) + bandTbl("Thesis bands", bands.thesis) + bandTbl("Anchor bands", bands.anchor) + (bands.note ? '<p class="sub" style="margin-top:10px">' + md(bands.note) + "</p>" : "") + "</div></details>";
+}
+
+/* ---------- router + events ---------- */
+function render(){
+  var r = route();
+  safe(function(){ renderSide(r); });
+  var ok = safe(function(){ if (r.v === "history") renderHistory(); else if (r.v === "parlays") renderParlays(); else if (r.v === "performance") renderPerformance(); else renderDay(r); return true; }, false);
+  if (!ok) document.getElementById("view").innerHTML = '<div class="card"><div class="empty">This view hit a data problem. Try <a class="acc" href="#/history">History</a>.</div></div>';
+}
+var lastRoute = "";
+window.addEventListener("hashchange", function(){ var h = location.hash; if (h === "#picks") return; if (h !== lastRoute) { state.sel = 0; state.tab = "analysis"; state.sport = "All"; state.wire = "All"; } lastRoute = h; render(); window.scrollTo(0, 0); });
+document.addEventListener("click", function(e){
+  var t = e.target.closest("[data-i],[data-tab],[data-sport],[data-brk],[data-h],[data-go],[data-wire],[data-scroll],#more,[data-clamp]");
+  if (!t) return;
+  if (t.hasAttribute("data-scroll")) { e.preventDefault(); var el = document.getElementById(t.getAttribute("data-scroll")); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (t.hasAttribute("data-clamp")) { t.classList.toggle("open"); return; }
+  if (t.hasAttribute("data-i")) { state.sel = +t.getAttribute("data-i"); state.tab = "analysis"; render(); if (window.innerWidth < 1181) { var dt = document.getElementById("detail"); if (dt) dt.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
+  if (t.hasAttribute("data-tab")) { state.tab = t.getAttribute("data-tab"); render(); return; }
+  if (t.hasAttribute("data-sport")) { state.sport = t.getAttribute("data-sport"); render(); return; }
+  if (t.hasAttribute("data-wire")) { state.wire = t.getAttribute("data-wire"); render(); return; }
+  if (t.hasAttribute("data-brk")) { state[t.getAttribute("data-bk")] = t.getAttribute("data-brk"); render(); return; }
+  if (t.hasAttribute("data-h")) { state[t.getAttribute("data-h")] = t.getAttribute("data-v"); state.hn = 40; render(); return; }
+  if (t.id === "more") { state.hn += 60; render(); return; }
+  if (t.hasAttribute("data-go")) { location.hash = t.getAttribute("data-go"); }
+});
+document.addEventListener("keydown", function(e){ if ((e.key === "Enter" || e.key === " ") && e.target.hasAttribute && e.target.hasAttribute("data-i")) { e.preventDefault(); e.target.click(); } });
+document.addEventListener("input", function(e){ if (e.target.id === "hq") { state.hq = e.target.value; state.hn = 40; var pos = e.target.selectionStart; render(); var n = document.getElementById("hq"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } } });
+lastRoute = location.hash;
+render();
+})();
+</script>
+</body>
+</html>
