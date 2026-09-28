@@ -9,6 +9,7 @@ from espn import (norm, find_event, event_state, competitors, score_of, team_nam
 FOOTBALL = {"NFL", "CFB"}
 BASEBALL = {"MLB"}
 BASKETBALL = {"NBA", "WNBA", "CBB", "NCAAB"}
+HOCKEY = {"NHL"}
 # (regex on the selection text or market, stat key); first match wins, so combos come first
 PROP_STATS = {
     "football": [
@@ -31,6 +32,14 @@ PROP_STATS = {
         (r"runs scored|batter[ _]runs", ("batting", "R")),
         (r"\bhits\b|batter[ _]hits", ("batting", "H")),
     ],
+    "hockey": [
+        (r"points|\bpts\b", [(None, "G"), (None, "A")]),
+        (r"shots on goal|\bsog\b|\bshots\b", (None, "SOG")),
+        (r"saves", (None, "SV")),
+        (r"blocked shots|blocks", (None, "BS")),
+        (r"assists", (None, "A")),
+        (r"goals", (None, "G")),
+    ],
     "basketball": [
         (r"pts ?\+ ?reb ?\+ ?ast|points ?\+ ?rebounds ?\+ ?assists|\bpra\b", [(None, "PTS"), (None, "REB"), (None, "AST")]),
         (r"pts ?\+ ?reb|points ?\+ ?rebounds", [(None, "PTS"), (None, "REB")]),
@@ -46,7 +55,8 @@ PROP_STATS = {
 
 
 def family(sport):
-    return "football" if sport in FOOTBALL else "baseball" if sport in BASEBALL else "basketball" if sport in BASKETBALL else None
+    return ("football" if sport in FOOTBALL else "baseball" if sport in BASEBALL else
+            "basketball" if sport in BASKETBALL else "hockey" if sport in HOCKEY else None)
 
 
 def dec_from_american(a):
@@ -109,6 +119,9 @@ def parse(text, market, bet_type, sport):
         return {"kind": kind, "player": player} if player else None
     ou = re.search(r"\b(over|under)\s*(\d+(?:\.\d+)?)", t)
     fam = family(sport)
+    if fam == "hockey" and (re.search(SCORER_RX, t) or re.search(SCORER_RX, mk)):
+        player = re.split(r"\s+(?:anytime|to score)", text, flags=re.I)[0].strip()
+        return {"kind": "prop", "player": player, "stat": (None, "G"), "side": "over", "line": 0.5} if player else None
     table = PROP_STATS.get(fam, [])
     is_prop = "player" in mk or "pitcher" in mk or "batter" in mk or bt == "player prop" or any(re.search(rx, t) or re.search(rx, mk) for rx, _ in table)
     if is_prop:

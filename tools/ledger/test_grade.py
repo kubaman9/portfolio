@@ -62,7 +62,10 @@ CASES += [p1, p2, p3, p4, p5,
           S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Francisco Lindor Over 0.5 Hits", "Player Prop", "LOSS", dec=1.9),
           # soccer scorer/assist props against the 9/27 Norway-Portugal match report
           S("2026-09-27", "Soccer", "Norway @ Portugal (UEFA Nations League A)", "João Félix Anytime Goalscorer", "Player Prop", "WIN", dec=2.5),
-          S("2026-09-27", "Soccer", "Norway @ Portugal (UEFA Nations League A)", "Pedro Neto Anytime Assist", "Player Prop", "WIN", dec=2.5)]
+          S("2026-09-27", "Soccer", "Norway @ Portugal (UEFA Nations League A)", "Pedro Neto Anytime Assist", "Player Prop", "WIN", dec=2.5),
+          # NHL props, 4/12 Penguins @ Capitals (Brazeau 2 shots, both missed: 0 SOG; Skinner 24 saves)
+          S("2026-04-12", "NHL", "Pittsburgh Penguins @ Washington Capitals", "Justin Brazeau Over 1.5 Shots on Goal", "Player Prop", "LOSS", dec=1.9),
+          S("2026-04-12", "NHL", "Pittsburgh Penguins @ Washington Capitals", "Stuart Skinner Over 25.5 Saves", "Player Prop", "LOSS", dec=1.9)]
 
 
 def main():
