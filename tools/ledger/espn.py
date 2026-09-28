@@ -100,8 +100,18 @@ def split_matchup(matchup):
     return [p.strip(" -") for p in parts] if len(parts) == 2 else None
 
 
+def _strength(side, comp):
+    """2 = exact name match, 1 = partial (nickname / prefix), 0 = none."""
+    side = norm(side)
+    if side in team_names(comp):
+        return 2
+    return 1 if side_matches(side, comp) else 0
+
+
 def find_event(sport_label, date, matchup):
-    """Return (sport, league, event) for a matchup on date (+/- 1 day), or None."""
+    """Return (sport, league, event) for a matchup on date (+/- 1 day), or None.
+    Refuses to guess: if two different games match equally well (e.g. "Miami" on a
+    college Saturday), it returns None and the pick is left for the daily run."""
     sides = split_matchup(matchup)
     if not sides:
         return None
@@ -111,6 +121,7 @@ def find_event(sport_label, date, matchup):
     base = _dt.date(y, mo, d)
     for delta in (0, 1, -1):
         day = (base + _dt.timedelta(days=delta)).isoformat()
+        cands = []
         for sport, league, extra in leagues:
             try:
                 events = scoreboard(sport, league, day, extra)
@@ -120,10 +131,19 @@ def find_event(sport_label, date, matchup):
                 comps = ev.get("competitions", [{}])[0].get("competitors", [])
                 if len(comps) != 2:
                     continue
-                a = [i for i, c in enumerate(comps) if side_matches(sides[0], c)]
-                b = [i for i, c in enumerate(comps) if side_matches(sides[1], c)]
-                if a and b and set(a) != set(b):
-                    return sport, league, ev
+                best = 0
+                for i, j in ((0, 1), (1, 0)):
+                    a, b = _strength(sides[0], comps[i]), _strength(sides[1], comps[j])
+                    if a and b:
+                        best = max(best, a + b)
+                if best:
+                    cands.append((best, sport, league, ev))
+        if cands:
+            cands.sort(key=lambda c: -c[0])
+            top = [c for c in cands if c[0] == cands[0][0]]
+            if len({c[3]["id"] for c in top}) > 1:
+                return None  # ambiguous: two games fit equally well
+            return top[0][1], top[0][2], top[0][3]
     return None
 
 
