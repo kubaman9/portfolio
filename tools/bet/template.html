@@ -225,6 +225,26 @@ details.more>.in{padding:0 16px 16px}
 .search:focus{outline:none;border-color:var(--green)}
 .footer{margin-top:26px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:500 11px var(--mono);color:var(--dim);letter-spacing:.04em}
 
+/* charts v2 */
+.dbars{display:flex;flex-direction:column;gap:12px}
+.dbar-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,1.7fr) 76px;gap:12px;align-items:center;font-size:13px}
+.dbar-row .k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#d3dbe4}
+.dtrack{position:relative;height:24px;background:var(--bg2);border-radius:6px}
+.dtrack:after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#2c3a4a}
+.dtrack i{position:absolute;top:0;bottom:0;border-radius:5px;background:#4dab8e}
+.dtrack i.neg{background:#e06c55}
+.dv{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25}
+.dv b{font:700 13px var(--mono)} .dv span{font-size:11px}
+.daybars{width:100%;height:auto;display:block}
+.daybars text{fill:var(--dim);font:500 10px var(--mono)}
+.daybars a:hover rect{filter:brightness(1.25)}
+.qstrip{display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 12px}
+.qchip{border:1px solid var(--line2);background:var(--bg2);border-radius:9px;padding:6px 10px;font-size:11.5px;color:var(--muted)}
+.qchip b{font:700 13px var(--mono);color:var(--text);margin-right:4px}
+.qchip b.pos{color:var(--green)} .qchip b.neg{color:var(--red)}
+.calib text{fill:var(--muted);font:500 11px Inter,sans-serif}
+.calib .ax{fill:var(--dim);font:500 10px var(--mono)}
+
 /* ledger additions */
 .greet h1{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;margin:0}
 .greet .gs{font-size:12.5px;color:var(--muted);margin-top:2px}
@@ -307,6 +327,7 @@ details.more>.in{padding:0 16px 16px}
   .mgreet{display:block;margin:0 0 12px}
   .mgreet h1{font-size:21px}
   .mnav a{font-size:10px}
+  .dbar-row{grid-template-columns:minmax(0,1.2fr) minmax(64px,1.1fr) 70px;gap:8px}
   .brk{grid-template-columns:minmax(0,1fr);justify-items:center}
   .brk .bars{width:100%}
   .sstats{grid-template-columns:repeat(2,1fr)}
@@ -470,6 +491,7 @@ function line(vals, labels, w, h, opt){
   s += '<path d="' + d + " L" + X(vals.length - 1).toFixed(1) + " " + (h - pad.b) + " L" + X(0).toFixed(1) + " " + (h - pad.b) + ' Z" fill="url(#' + id + ')"/>';
   s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
   s += '<circle cx="' + X(vals.length - 1) + '" cy="' + Y(vals[vals.length - 1]) + '" r="3.5" fill="' + col + '"/>';
+  if (labels && labels.length === vals.length) vals.forEach(function(v, i){ s += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="7" fill="transparent"><title>' + esc(labels[i] + ": " + (opt.fmt ? opt.fmt(v) : (v > 0 ? "+" : "") + v.toFixed(2))) + "</title></circle>"; });
   return s + "</svg>";
 }
 function donut(p, label){
@@ -541,8 +563,9 @@ function clvTrend(h){
 function labRow(){
   var ud = IXDAYS.slice(-14), last = ud.length ? num(ud[ud.length - 1].units_after) : 0;
   var pts = IXDAYS.filter(function(x){ return num(x.clv_d) > 0; }), lp = pts[pts.length - 1];
-  return '<div class="card-h" style="margin:22px 0 12px"><h2>Performance lab</h2><a class="link" href="#/performance">Open →</a></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start">' +
+  return '<div class="card-h" style="margin:22px 0 12px"><h2>Performance lab</h2><a class="link" href="#/performance">Open →</a></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:start">' +
     '<div class="card"><div class="card-h"><h2 style="font-size:14px">Units curve</h2><span class="mono ' + cls(last) + '" style="font-weight:700">' + fU(last) + "</span></div>" + line(ud.map(function(x){ return num(x.units_after) || 0; }), ud.map(function(x){ return fDs(x.date); }), 360, 150, { axis: true, ticks: 4, color: curveColor(last), label: "units curve" }) + "</div>" +
+    '<div class="card"><div class="card-h"><h2 style="font-size:14px">Units by day</h2><span class="sub">last 14 · tap a bar</span></div>' + dayBars(IXDAYS.slice(-14), { h: 170 }) + "</div>" +
     '<div class="card"><div class="card-h"><h2 style="font-size:14px">CLV coverage trend</h2><span class="mono" style="font-weight:700;color:var(--gold)">' + (lp ? Math.round(100 * lp.clv_n / lp.clv_d) + "%" : "—") + "</span></div>" + clvTrend() + "</div></div>";
 }
 
@@ -666,8 +689,81 @@ function brkRows(key){
 }
 function bars(rows){
   if (!rows.length) return '<div class="empty">No data yet.</div>';
+  rows = rows.slice().sort(function(a, b){ return (num(a.u) || 0) - (num(b.u) || 0); });
   var mu = Math.max.apply(null, rows.map(function(r){ return Math.abs(num(r.u) || 0); }).concat([0.01]));
-  return '<div class="bars">' + rows.map(function(r){ var n = r.W + r.L, w = pct(r.W, n); return '<div class="bar-row" title="' + esc(r.lo != null ? "95% range " + r.lo + "–" + r.hi + "%" : "") + '"><span class="k">' + esc(r.k) + '</span><span class="mono mut">' + r.W + "–" + r.L + '</span><span class="track"><i style="width:' + (w || 0) + '%"></i></span><span class="mono r ' + cls(r.u) + '" style="text-align:right;font-weight:700">' + fU(r.u) + "</span></div>"; }).join("") + "</div>";
+  return '<div class="dbars">' + rows.map(function(r){
+    var u = num(r.u) || 0, w = Math.max(1.2, 50 * Math.abs(u) / mu), n = r.W + r.L, hit = pct(r.W, n);
+    var tip = r.k + ": " + r.W + "-" + r.L + (hit != null ? ", " + hit + "% hit" : "") + ", " + fU(u) + (r.lo != null ? " · 95% range " + r.lo + "-" + r.hi + "%" : "");
+    return '<div class="dbar-row" title="' + esc(tip) + '"><span class="k">' + esc(r.k) + '</span><span class="dtrack"><i class="' + (u < 0 ? "neg" : "") + '" style="' + (u < 0 ? "right:50%" : "left:50%") + ";width:" + w.toFixed(1) + '%"></i></span><span class="dv"><b class="' + cls(u) + '">' + fU(u) + '</b><span class="mono mut">' + r.W + "–" + r.L + (hit != null ? " · " + Math.round(hit) + "%" : "") + "</span></span></div>";
+  }).join("") + "</div>";
+}
+/* daily units bars: one per day, each opens that day */
+function dayBars(days, opt){
+  opt = opt || {};
+  days = (days || []).filter(function(x){ return x && x.date; });
+  if (!days.length) return "";
+  var W = 700, H = opt.h || 190, padT = 14, padB = 26, n = days.length, slot = W / n, bw = Math.max(4, Math.min(44, slot * 0.72));
+  var mx = Math.max.apply(null, days.map(function(x){ return Math.abs(num(x.units_day) || 0); }).concat([0.5]));
+  var mid = padT + (H - padT - padB) / 2, half = (H - padT - padB) / 2;
+  var every = n > 24 ? 3 : n > 16 ? 2 : 1;
+  var sv = '<svg class="daybars" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="units by day"><line x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '" stroke="#2c3a4a" stroke-dasharray="3 5"/>';
+  days.forEach(function(x, i){
+    var u = num(x.units_day) || 0, h = Math.max(3, half * Math.abs(u) / mx), cx = slot * i + slot / 2;
+    var y = u >= 0 ? mid - h : mid, col = u > 0.0049 ? "#4dab8e" : u < -0.0049 ? "#e06c55" : "#4dab8e";
+    if (Math.abs(u) < 0.005) { y = mid - 1.5; h = 3; }
+    sv += '<a href="#/day/' + x.date + '"><title>' + esc(fD(x.date, true) + ": " + fU(u) + (x.record_after ? " · " + x.record_after : "") + (x.picks != null ? " · " + x.picks + " picks" : "")) + '</title><rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4" fill="' + col + '"/>' +
+      '<rect x="' + (slot * i).toFixed(1) + '" y="0" width="' + slot.toFixed(1) + '" height="' + H + '" fill="transparent"/></a>';
+    if (i % every === 0 || i === n - 1) sv += '<text x="' + cx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + dd(x.date).getUTCDate() + "</text>";
+  });
+  return sv + "</svg>";
+}
+/* stated confidence vs what actually hit, with the 95% range */
+function calibChart(bands){
+  var order = [["<50%", 40, 49], ["50-54%", 50, 54], ["55-59%", 55, 59], ["60%+", 60, 66]];
+  var rows = order.filter(function(o){ return bands[o[0]]; });
+  if (!rows.length) return "";
+  var W = 700, rowH = 40, top = 24, H = top + rows.length * rowH + 26, x0 = 110, x1 = W - 70, lo = 10, hi = 90;
+  var X = function(v){ return x0 + (Math.max(lo, Math.min(hi, v)) - lo) * (x1 - x0) / (hi - lo); };
+  var sv = '<svg class="calib" viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto" role="img" aria-label="calibration">';
+  [20, 30, 40, 50, 60, 70, 80].forEach(function(v){ sv += '<line x1="' + X(v) + '" x2="' + X(v) + '" y1="' + (top - 8) + '" y2="' + (H - 22) + '" stroke="#1c2733"/><text class="ax" x="' + X(v) + '" y="' + (H - 6) + '" text-anchor="middle">' + v + "%</text>"; });
+  rows.forEach(function(o, i){
+    var b = bands[o[0]], y = top + i * rowH + rowH / 2, n = b.W + b.L;
+    sv += '<text x="0" y="' + (y + 4) + '">' + esc(o[0]) + ' <tspan class="ax">n=' + n + "</tspan></text>";
+    sv += '<rect x="' + X(o[1]) + '" y="' + (y - 9) + '" width="' + (X(o[2]) - X(o[1]) + 2) + '" height="18" rx="4" fill="rgba(245,181,24,.18)" stroke="rgba(245,181,24,.5)"><title>stated confidence ' + o[1] + "-" + o[2] + "%</title></rect>";
+    if (b.wilson_lo != null) sv += '<line x1="' + X(b.wilson_lo) + '" x2="' + X(b.wilson_hi) + '" y1="' + y + '" y2="' + y + '" stroke="#5d6b7b" stroke-width="2"/><line x1="' + X(b.wilson_lo) + '" x2="' + X(b.wilson_lo) + '" y1="' + (y - 5) + '" y2="' + (y + 5) + '" stroke="#5d6b7b" stroke-width="2"/><line x1="' + X(b.wilson_hi) + '" x2="' + X(b.wilson_hi) + '" y1="' + (y - 5) + '" y2="' + (y + 5) + '" stroke="#5d6b7b" stroke-width="2"/>';
+    var ok = b.hit >= o[1];
+    sv += '<circle cx="' + X(b.hit) + '" cy="' + y + '" r="7" fill="' + (ok ? "#19e68c" : "#e06c55") + '"><title>actual hit ' + b.hit + "% (" + b.W + "-" + b.L + "), 95% range " + b.wilson_lo + "-" + b.wilson_hi + "%</title></circle>";
+    sv += '<text x="' + (W - 2) + '" y="' + (y + 4) + '" text-anchor="end" style="font:700 12px JetBrains Mono,monospace;fill:' + (ok ? "#19e68c" : "#e06c55") + '">' + b.hit + "%</text>";
+  });
+  return sv + "</svg>";
+}
+function qualityCard(){
+  var L = LEDGER || {};
+  var parts = [];
+  if (L.by_conf_band) parts.push('<div class="sec-t">Stated confidence vs actual hit rate</div>' + calibChart(L.by_conf_band) + '<p class="sub" style="margin-top:6px">Gold box = what the pick said; dot = what hit, with its 95% range. A dot left of its box means confidence ran hot.</p>');
+  var aq = L.by_anchor_quality || {}, tq = L.by_thesis_quality || {};
+  var mk = function(o){ return Object.keys(o).map(function(k){ var x = o[k]; return { k: k, W: x.W, L: x.L, u: x.units }; }); };
+  if (Object.keys(aq).length) parts.push('<div class="sec-t">By anchor quality (how good the market reference was)</div>' + bars(mk(aq).map(function(r){ r.k = "Anchor " + r.k; return r; })));
+  if (Object.keys(tq).length) parts.push('<div class="sec-t">By thesis quality</div>' + bars(mk(tq)));
+  if (!parts.length) return "";
+  return '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Confidence &amp; pick quality</h2><span class="sub">is the confidence honest?</span></div>' + parts.join("") + "</div>";
+}
+function cardQuality(picks){
+  var evs = [], edges = [], src = 0, n = 0, aq = {};
+  picks.forEach(function(p){
+    n++;
+    var ev = num(p.ev_pct), conf = num(p.confidence), b = be(odds(p));
+    if (ev != null) evs.push(ev);
+    if (conf != null && b != null) edges.push(conf - b);
+    if (String(p.thesis_quality || "").toLowerCase() === "sourced") src++;
+    if (p.anchor_quality) aq[p.anchor_quality] = (aq[p.anchor_quality] || 0) + 1;
+  });
+  if (!n) return "";
+  var avg = function(a){ return a.length ? a.reduce(function(x, y){ return x + y; }, 0) / a.length : null; };
+  var e = avg(evs), g = avg(edges);
+  var chip = function(v, l, c){ return '<span class="qchip"><b class="' + (c || "") + '">' + v + "</b>" + l + "</span>"; };
+  return '<div class="qstrip">' + chip(fP(e), "avg EV", cls(e)) + chip(g == null ? "—" : (g >= 0 ? "+" : "−") + Math.abs(g).toFixed(1) + " pts", "conf over break-even", cls(g)) +
+    chip(Math.round(100 * src / n) + "%", "sourced thesis") + chip(Object.keys(aq).sort().map(function(k){ return aq[k] + k; }).join(" ") || "—", "anchor mix") + "</div>";
 }
 var BRK = [["type", "By type"], ["sport", "By sport"], ["structure", "Structure"], ["conf", "Confidence"], ["tier", "Tier"]];
 function breakdown(stateKey, tabs){
@@ -720,7 +816,7 @@ function renderDay(r){
     '<div class="htiles"><div class="htile"><div class="l">Positions</div><div class="v">' + (picks.length + slips.length) + '</div><div class="s">' + picks.length + " singles · " + slips.length + ' slips</div></div><div class="htile"><div class="l">Units at risk</div><div class="v">' + (Math.round(stakeSum * 100) / 100) + 'u</div><div class="s">of 8u ceiling</div></div><div class="htile"><div class="l">Record after</div><div class="v">' + esc(e.record_after || "—") + '</div><div class="s">' + fU(e.units_day) + ' this day</div></div><div class="htile"><div class="l">CLV coverage</div><div class="v">' + esc(e.clv_coverage || "—") + '</div><div class="s">real closes</div></div></div>' +
     '<div class="hero-badge"><div class="v ' + cls(l7) + '">' + fU(l7) + '</div><div class="l">Last 7 days</div></div></section>';
   var chips = '<div class="chips">' + ["All"].concat(sports).map(function(s){ return '<button class="chip' + (state.sport === s ? " on" : "") + '" data-sport="' + esc(s) + '">' + (s === "All" ? "All" : badge(s, "xs")) + (s === "All" ? "" : esc(s)) + ' <span class="n">' + (s === "All" ? picks.length + slips.length : cnt[s]) + "</span></button>"; }).join("") + "</div>";
-  var featured = '<div class="card" id="picks"><div class="card-h"><h2>' + (isToday ? "Today’s card" : "The card") + '</h2><span class="sub">' + (fp.length ? fp.length + " singles · tap for the breakdown" : "") + "</span></div>" +
+  var featured = '<div class="card" id="picks"><div class="card-h"><h2>' + (isToday ? "Today’s card" : "The card") + '</h2><span class="sub">' + (fp.length ? fp.length + " singles · tap for the breakdown" : "") + "</span></div>" + cardQuality(picks) +
     (fp.length ? '<div class="phead"><span></span><span>Matchup</span><span>Pick</span><span>Odds</span><span>Conf.</span><span>EV</span><span class="r">Status</span></div><div class="plist">' + fp.map(function(x){ return pickRow(x.p, x.i, x.i === state.sel); }).join("") + "</div>" : '<div class="empty">No singles' + (state.sport !== "All" ? " in " + esc(state.sport) : "") + " on this card.</div>") + "</div>";
   var detailCard = '<div class="card" id="detail"><div class="card-h"><h2>Pick detail</h2><span class="sub">' + (picks.length ? state.sel + 1 + " of " + picks.length : "") + "</span></div>" + detail(picks[state.sel]) + "</div>";
   var parlays = '<div class="card"><div class="card-h"><h2>Parlay corner</h2><span class="sub">' + fs.length + " slip" + (fs.length === 1 ? "" : "s") + "</span></div>" + (fs.length ? '<div class="slips">' + fs.map(slipCard).join("") + "</div>" : '<div class="empty">No parlays on this card.</div>') + "</div>";
@@ -750,6 +846,7 @@ function renderHistory(){
   var days = IXDAYS.slice().reverse();
   var chip = function(key, val, label){ return '<button class="chip' + (state[key] === val ? " on" : "") + '" data-h="' + key + '" data-v="' + esc(val) + '">' + esc(label) + "</button>"; };
   document.getElementById("view").innerHTML =
+    '<div class="card" style="margin-bottom:16px"><div class="card-h"><h2>Units by day</h2><span class="sub">each bar opens that day</span></div>' + dayBars(IXDAYS, { h: 200 }) + "</div>" +
     '<div class="card"><div class="card-h"><h2>All picks</h2><span class="mono" style="font-weight:700">' + t.W + "–" + t.L + (t.P ? "–" + t.P : "") + ' · <span class="' + cls(t.u) + '">' + fU(t.u) + "</span></span></div>" +
     '<div class="chips" style="margin-bottom:10px">' + chip("hsport", "All", "All sports") + sports.map(function(s){ return chip("hsport", s, s); }).join("") + "</div>" +
     '<div class="chips" style="margin-bottom:14px;align-items:center">' + chip("hres", "All", "Any result") + chip("hres", "WIN", "Wins") + chip("hres", "LOSS", "Losses") + chip("hres", "OPEN", "Open") + '<span style="width:10px"></span>' + chip("hkind", "All", "Singles + parlays") + chip("hkind", "pick", "Singles") + chip("hkind", "slip", "Parlays") + '<input class="search" id="hq" placeholder="Search team or player" value="' + esc(state.hq) + '"></div>' +
@@ -785,10 +882,11 @@ function renderPerformance(){
   var bandTbl = function(title, rows){ return rows && rows.length ? '<div class="sec-t">' + esc(title) + '</div><table class="tbl"><thead><tr><th>Band</th><th class="r">Graded</th><th class="r">Open</th><th class="r">Units</th><th class="r hide-m">Mean CLV</th></tr></thead><tbody>' + rows.map(function(b){ return "<tr><td>" + esc(b.band) + '</td><td class="r mono">' + esc(b.n) + '</td><td class="r mono">' + esc(b.open == null ? "" : b.open) + '</td><td class="r mono ' + cls(b.units) + '">' + fU(b.units) + '</td><td class="r mono hide-m">' + (b.mean_clv != null ? fP(b.mean_clv, 2) : "—") + "</td></tr>"; }).join("") + "</tbody></table>" : ""; };
   document.getElementById("view").innerHTML =
     '<div class="kpis">' + tiles.map(function(t){ return '<div class="tile" title="' + esc(plain(t.s)) + '"><div class="l">' + esc(t.l) + '</div><div class="v ' + (C[t.c] || "") + '">' + esc(t.v) + '</div><div class="s">' + md(t.s) + "</div></div>"; }).join("") + "</div>" +
-    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, color: curveColor(UNITS), label: "cumulative units, all time" }) + "</div>" +
+    '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, color: curveColor(UNITS), label: "cumulative units, all time" }) +
+      '<div class="sec-t" style="margin-top:14px">Units by day · each bar opens that day</div>' + dayBars(IXDAYS, { h: 180 }) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + breakdown("brk", BRK) +
     '<div class="card"><div class="card-h"><h2>Calibration</h2><a class="link" href="#/clv">CLV Lab →</a></div>' + (st.calibration ? '<div class="prose"><p>' + md(st.calibration) + "</p></div>" : '<div class="empty">No calibration line yet.</div>') + '<div class="sec-t">CLV coverage trend</div>' + clvTrend() + "</div></div>" +
-    modelVsMarket() + gatesCard() + anglesCard() +
+    modelVsMarket() + qualityCard() + gatesCard() + anglesCard() +
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Where the money leaks</h2><span class="sub">tap a row for the read</span></div>' + leaks.map(function(l){ return '<details class="lrow" style="border-top:1px solid var(--line)"><summary style="list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center"><span class="t">' + esc(l.seg) + '</span><span class="mono mut">' + esc(l.record) + '</span><span class="mono ' + ({ neg: "neg", pos: "pos" }[l.tone] || "") + '" style="font-weight:700;min-width:64px;text-align:right">' + esc(l.units) + '</span></summary><div class="b prose" style="margin-top:8px">' + md(l.read) + "</div></details>"; }).join("") + "</div>" +
     '<details class="more" style="margin-top:16px"><summary>EV, thesis and anchor bands</summary><div class="in">' + bandTbl("EV bands", bands.ev) + bandTbl("Thesis bands", bands.thesis) + bandTbl("Anchor bands", bands.anchor) + (bands.note ? '<p class="sub" style="margin-top:10px">' + md(bands.note) + "</p>" : "") + "</div></details>";
 }
@@ -798,7 +896,7 @@ function anglesCard(){
   if (!t) return "";
   var rows = Object.keys(t).map(function(k){ var x = t[k]; return { k: k.replace(/_/g, " "), W: x.W, L: x.L, u: x.units, clv: x.mean_clv, nclv: x.n_clv }; }).sort(function(a, b){ return b.u - a.u; });
   if (!rows.length) return "";
-  return '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Angles</h2><span class="sub">results by the tag on each pick · bar = hit rate</span></div>' + bars(rows) +
+  return '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Angles</h2><span class="sub">units by the tag on each pick · W–L · hit %</span></div>' + bars(rows) +
     '<p class="sub" style="margin-top:10px">' + rows.filter(function(r){ return r.clv != null && r.nclv >= 5; }).map(function(r){ return esc(r.k) + " CLV " + fP(r.clv, 2); }).join(" · ") + "</p></div>";
 }
 function gatesCard(){
