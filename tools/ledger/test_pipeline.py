@@ -62,6 +62,8 @@ check(isinstance(g["Cincinnati Bengals -3.5"].get("clv"), float), f"Bengals got 
 day = db.dashboard_days.find_one({"_id": D})
 check([p["result"] for p in day["picks"]] == ["LOSS", "WIN", "WIN"], "dashboard_days picks mirrored")
 check(day["slips"][0]["result"] == "WIN" and day["slips"][0]["legs_detail"][1]["status"] == "WIN", "dashboard_days slip + legs mirrored")
+par = db.picks.find_one({"bet": "Parlay: Arizona Cardinals +7.5 + Denver Broncos +2.5"})
+check((par.get("clv_note") or "").startswith("pipeline: 1 of 2"), f"parlay CLV withheld when a leg's point moved ({par.get('clv_note')})")
 audit = list(db.grade_audit.find())
 check(len(audit) == 1 and audit[0]["espn_result"] == "LOSS", "audit caught the Sutton SGP misgrade")
 s = db.ledger_summary.find_one({"_id": "current"})

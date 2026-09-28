@@ -72,6 +72,8 @@ def write_back(db, pick, upd):
             hay = set(_words(re.sub(r"\(.*?\)", " ", (s.get("legs") or "") + " " + (s.get("shape") or ""))))
             if want and all(w in hay for w in want):
                 s["result"], s["units"] = upd["result"], upd["units"]
+                if "clv" in upd:
+                    s["clv"] = upd["clv"]
                 for ld in s.get("legs_detail") or []:
                     for leg in upd.get("legs", []):
                         if set(_words(leg.get("selection"))) <= set(_words(ld.get("selection"))):
@@ -156,7 +158,42 @@ def step_close(db):
             write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"], "close": upd.get("closing_line")})
         done += 1
         log(f"  close {p['date']} {p.get('bet')!r}: {upd.get('closing_line')} clv={upd.get('clv')}")
-    log(f"close: {done} picks got an ESPN close")
+    # Parlays: CLV = product of leg multipliers, only when EVERY leg has a comparable close
+    q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "clv": None, "legs.0": {"$exists": True},
+         "date": {"$gte": (NOW - dt.timedelta(days=10)).date().isoformat()}}
+    for p in db.picks.find(q):
+        if (p.get("clv_note") or "").startswith("pipeline:"):
+            continue  # already tried; closes do not appear later
+        mult, ok, notes = 1.0, 0, []
+        for leg in p["legs"]:
+            mk = norm(leg.get("market") or "")
+            if not any(w in mk for w in ("spread", "total", "moneyline", "run line", "run_line")):
+                notes.append("prop/other leg")
+                continue
+            found = event_for_key(p.get("sport"), leg.get("game_key"), leg.get("selection"))
+            dec = leg.get("price_decimal")
+            if not found or not dec:
+                notes.append("leg event not found")
+                continue
+            bt = "Moneyline" if "moneyline" in mk else ("Total Under" if "under" in norm(leg.get("selection")) else "Total Over") if "total" in mk else "Spread"
+            pseudo = {"bet": leg.get("selection"), "bet_type": bt, "sport": p.get("sport"), "price_decimal": dec}
+            try:
+                u = closing_for(pseudo, found[0], found[1], found[2]["id"], competitors(found[2]))
+            except Exception:
+                u = None
+            if u and "clv" in u:
+                mult *= 1 + u["clv"] / 100
+                ok += 1
+            else:
+                notes.append("point moved or no close")
+        n = len(p["legs"])
+        if ok == n:
+            upd = {"clv": round((mult - 1) * 100, 2), "clv_source": "espn_core_pipeline (product of legs)", "updated_at": ISO}
+            write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"]})
+            log(f"  parlay clv {p['date']} {p.get('bet')!r}: {upd['clv']}%")
+        else:
+            upd = {"clv_note": f"pipeline: {ok} of {n} legs have a comparable close ({'; '.join(sorted(set(notes)))})", "updated_at": ISO}
+        db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
 
 
 def step_audit(db):
@@ -292,10 +329,15 @@ def step_summary(db):
                  "units_at_risk": round(sum(r.get("stake_units") or 0 for r in rows if r.get("result") == "OPEN"), 2)},
         "open_audits": db.grade_audit.count_documents({"status": "open"}),
     }
+    tag_groups = {}
+    for r in graded:
+        for t in set(r.get("tags") or []):
+            tag_groups.setdefault(str(t).lower(), []).append(r)
+    doc["by_tag"] = {k: seg(v) for k, v in sorted(tag_groups.items()) if len(v) >= 5}
     sport_type = by(lambda r: f"{r.get('sport')}/{r.get('bet_type')}" if not r.get("legs") else None)
     doc["by_sport_bet_type"] = sport_type
     doc["flags"] = flags_for({"sport": doc["by_sport"], "bet_type": doc["by_bet_type"], "slip_type": doc["by_slip_type"],
-                              "conf_band": doc["by_conf_band"], "sport_bet_type": sport_type,
+                              "conf_band": doc["by_conf_band"], "sport_bet_type": sport_type, "tag": doc["by_tag"],
                               "structure": {"singles": doc["singles"], "parlays": doc["parlays"]}})
     db.ledger_summary.replace_one({"_id": "current"}, doc, upsert=True)
     db.ledger_summary.replace_one({"_id": NOW.date().isoformat()}, dict(doc, _id=NOW.date().isoformat()), upsert=True)
