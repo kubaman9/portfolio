@@ -33,7 +33,7 @@ from grade import grade_pick, closing_for, parse, event_for_key  # noqa: E402
 
 NOW = dt.datetime.now(dt.timezone.utc)
 ISO = NOW.strftime("%Y-%m-%dT%H:%M:%SZ")
-FIRST_LIVE_DAY = "2026-09-01"  # older rows are legacy/backfilled; leave them alone
+FIRST_LIVE_DAY = "2026-08-31"  # first day of the ledger; everything since is counted
 
 
 def log(*a):
