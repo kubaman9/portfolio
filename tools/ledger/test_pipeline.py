@@ -68,5 +68,7 @@ audit = list(db.grade_audit.find())
 check(len(audit) == 1 and audit[0]["espn_result"] == "LOSS", "audit caught the Sutton SGP misgrade")
 s = db.ledger_summary.find_one({"_id": "current"})
 check(s and s["adjustment_test"]["all"]["n"] == 3, f"summary adjustment test n=3 ({(s or {}).get('adjustment_test')})")
+q = s.get("quality") or {}
+check(q.get("checked", 0) >= 1 and isinstance(q.get("missing"), list), f"quality check ran ({q.get('checked')} checked, {len(q.get('missing') or [])} with gaps)")
 print(f"\n{len(fails)} failures")
 sys.exit(1 if fails else 0)

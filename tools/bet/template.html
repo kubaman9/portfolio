@@ -843,6 +843,12 @@ function renderClv(){
 }
 
 /* ---------- RISK ---------- */
+function qualityBlock(){
+  var q = LEDGER && LEDGER.quality;
+  if (!q || !q.checked) return "";
+  var m = q.missing || [];
+  return '<div class="sec-t">Data quality · last 3 days</div>' + (m.length ? '<div class="prose"><p class="mut">' + m.length + " of " + q.checked + " picks are missing required fields (the next run fills them):</p></div>" + m.slice(0, 8).map(function(x){ return '<div class="lrow"><div class="t">' + esc(plain(x.bet)) + ' <span class="sub">' + esc(fDs(x.date)) + '</span></div><div class="b sub">missing: ' + esc((x.fields || []).join(", ")) + "</div></div>"; }).join("") : '<div class="prose"><p>All ' + q.checked + " recent picks carry every required field.</p></div>");
+}
 function renderRisk(){
   topbar("<b>Risk</b>", '<span class="pill mono">8u daily ceiling</span>');
   var d = DAYS[LATEST] || {}, open = ROWS.filter(function(r){ return isOpen(r.p); });
@@ -862,6 +868,7 @@ function renderRisk(){
     '<div class="card"><div class="card-h"><h2>Exposure by game</h2><span class="sub">open tickets only</span></div>' + (g.length ? '<table class="tbl"><thead><tr><th></th><th>Game</th><th class="r">Tickets</th><th class="r">At risk</th></tr></thead><tbody>' + g.map(function(k){ var x = games[k]; return "<tr><td>" + badge(x.sport || "Multi", "sm") + '</td><td class="ell">' + esc(k.indexOf("Parlay · ") === 0 ? k : shortM(k)) + (x.stale ? ' <span class="tg2 dog">older</span>' : "") + '</td><td class="r mono">' + x.n + '</td><td class="r mono">' + (Math.round(x.u * 100) / 100) + "u</td></tr>"; }).join("") + "</tbody></table>" : '<div class="empty">Nothing open.</div>') + "</div>" +
     '<div class="card"><div class="card-h"><h2>Today’s exposure read</h2><span class="sub">' + esc(fD(LATEST)) + "</span></div>" + (ex.sub || ex.note ? '<div class="prose">' + (ex.sub ? "<p>" + md(ex.sub) + "</p>" : "") + (ex.note ? '<p class="mut">' + md(ex.note) + "</p>" : "") + "</div>" : '<div class="empty">No exposure note this run.</div>') +
     (d.alerts || []).filter(function(a){ return a.tone === "exposure"; }).map(function(n){ return '<div class="note exposure"><div class="tg">' + esc(plain(n.tag)) + '</div><div class="tx">' + md(n.text) + "</div></div>"; }).join("") +
+    qualityBlock() +
     (stale.length ? '<div class="sec-t">Still open from earlier days</div><div class="prose"><p class="mut">' + stale.length + " ticket" + (stale.length === 1 ? "" : "s") + " logged before today have no grade yet: " + esc(stale.slice(0, 6).map(function(r){ return plain(r.p.bet || r.p.shape); }).join(", ")) + (stale.length > 6 ? "…" : "") + "</p></div>" : "") + "</div></div>";
 }
 

@@ -264,6 +264,39 @@ def _band(conf):
     return "<50%" if conf < 50 else "50-54%" if conf < 55 else "55-59%" if conf < 60 else "60%+"
 
 
+SINGLE_REQUIRED = ["confidence", "ev_pct", "anchor_prob", "model_prob", "anchor_quality", "thesis_quality",
+                   "stake_units", "book", "bet_type"]
+
+
+def quality_check(db):
+    """Fields v16 requires on every new pick. Lists what is missing so the run fixes
+    it and the site can show it; never edits a pick."""
+    since = (NOW - dt.timedelta(days=3)).date().isoformat()
+    missing = []
+    n = 0
+    for p in db.picks.find({"date": {"$gte": since}}):
+        n += 1
+        gaps = []
+        if p.get("legs"):
+            if not p.get("slip_type"):
+                gaps.append("slip_type")
+            if any(not (l.get("price_decimal") or l.get("price_american")) for l in p["legs"]):
+                gaps.append("leg prices")
+            if not p.get("stake_units"):
+                gaps.append("stake_units")
+        else:
+            gaps += [f for f in SINGLE_REQUIRED if p.get(f) in (None, "", [])]
+            if not (p.get("price_american") or p.get("price_decimal")):
+                gaps.append("price")
+            if not (p.get("falsifier") or p.get("wrong_if")):
+                gaps.append("wrong_if/falsifier")
+            if not (p.get("line_gap_thesis") or p.get("reasoning")):
+                gaps.append("reasoning")
+        if gaps:
+            missing.append({"date": p.get("date"), "bet": p.get("bet"), "fields": gaps})
+    return {"checked": n, "since": since, "complete": n - len(missing), "missing": missing[:40]}
+
+
 def step_summary(db):
     rows = list(db.picks.find({"date": {"$gte": FIRST_LIVE_DAY}}, {
         "date": 1, "sport": 1, "bet_type": 1, "result": 1, "units": 1, "stake_units": 1, "clv": 1,
@@ -339,6 +372,7 @@ def step_summary(db):
     doc["flags"] = flags_for({"sport": doc["by_sport"], "bet_type": doc["by_bet_type"], "slip_type": doc["by_slip_type"],
                               "conf_band": doc["by_conf_band"], "sport_bet_type": sport_type, "tag": doc["by_tag"],
                               "structure": {"singles": doc["singles"], "parlays": doc["parlays"]}})
+    doc["quality"] = quality_check(db)
     db.ledger_summary.replace_one({"_id": "current"}, doc, upsert=True)
     db.ledger_summary.replace_one({"_id": NOW.date().isoformat()}, dict(doc, _id=NOW.date().isoformat()), upsert=True)
     o = doc["overall"]
