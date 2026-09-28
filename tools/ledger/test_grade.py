@@ -59,7 +59,10 @@ CASES += [p1, p2, p3, p4, p5,
           # MLB props against the 9/26 Mets @ Nationals box score (Tong 5.0 IP, 9 K; Lindor 0-4)
           S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Jonah Tong Over 7.5 Strikeouts", "Player Prop", "WIN", dec=1.9),
           S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Jonah Tong Over 15.5 Outs Recorded", "Player Prop", "LOSS", dec=1.9),
-          S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Francisco Lindor Over 0.5 Hits", "Player Prop", "LOSS", dec=1.9)]
+          S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Francisco Lindor Over 0.5 Hits", "Player Prop", "LOSS", dec=1.9),
+          # soccer scorer/assist props against the 9/27 Norway-Portugal match report
+          S("2026-09-27", "Soccer", "Norway @ Portugal (UEFA Nations League A)", "João Félix Anytime Goalscorer", "Player Prop", "WIN", dec=2.5),
+          S("2026-09-27", "Soccer", "Norway @ Portugal (UEFA Nations League A)", "Pedro Neto Anytime Assist", "Player Prop", "WIN", dec=2.5)]
 
 
 def main():

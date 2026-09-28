@@ -94,11 +94,19 @@ def signed_point(text):
     return float(m[-1]) if m else None
 
 
+SCORER_RX = r"anytime (goal ?scorer|scorer|goalscorer|to score)|to score anytime|anytime goal|to score\b"
+ASSIST_RX = r"anytime assist|to assist|to record an assist"
+
+
 def parse(text, market, bet_type, sport):
     """-> dict(kind=..., ...) or None"""
     t = norm(text)
     mk = norm(market or "").replace("_", " ")
     bt = norm(bet_type or "")
+    if sport == "Soccer" and (re.search(SCORER_RX, t) or re.search(SCORER_RX, mk) or re.search(ASSIST_RX, t) or re.search(ASSIST_RX, mk)):
+        kind = "assist" if (re.search(ASSIST_RX, t) or re.search(ASSIST_RX, mk)) else "scorer"
+        player = re.split(r"\s+(?:anytime|to score|to assist|to record)", text, flags=re.I)[0].strip()
+        return {"kind": kind, "player": player} if player else None
     ou = re.search(r"\b(over|under)\s*(\d+(?:\.\d+)?)", t)
     fam = family(sport)
     table = PROP_STATS.get(fam, [])
@@ -126,6 +134,23 @@ def parse(text, market, bet_type, sport):
 def outcome(spec, ev, sport, sport_key, league):
     """WIN/LOSS/PUSH for one parsed selection on a final event, or None."""
     comps = competitors(ev)
+    if spec["kind"] in ("scorer", "assist"):
+        summ = summary(sport_key, league, ev["id"])
+        who = norm(spec["player"])
+        played = False
+        for team in summ.get("rosters") or []:
+            for r in team.get("roster") or []:
+                if norm((r.get("athlete") or {}).get("displayName")) == who and (r.get("starter") or r.get("subbedIn")):
+                    played = True
+        idx = 0 if spec["kind"] == "scorer" else 1
+        for k in summ.get("keyEvents") or []:
+            typ = norm(((k.get("type") or {}).get("type")) or "")
+            if typ != "goal":  # own goals and penalties-in-shootout do not count
+                continue
+            parts = k.get("participants") or []
+            if len(parts) > idx and norm((parts[idx].get("athlete") or {}).get("displayName")) == who:
+                return "WIN"
+        return "LOSS" if played else None  # did not play: void, leave for the run
     if spec["kind"] == "prop":
         summ = summary(sport_key, league, ev["id"])
         val = player_stat(summ, spec["player"], spec["stat"])
