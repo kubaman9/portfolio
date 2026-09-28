@@ -417,9 +417,10 @@ function graded(r){ var x = String(r.p.result || "").toUpperCase(); return x ===
 function tally(rows){ var W = 0, L = 0, P = 0, u = 0, st = 0; rows.forEach(function(r){ var x = String(r.p.result || "").toUpperCase(); if (x === "WIN") W++; else if (x === "LOSS") L++; else if (x === "PUSH") P++; else return; u += num(r.p.units) || 0; st += stake(r.p); }); return { W: W, L: L, P: P, u: u, st: st, wr: pct(W, W + L), roi: st ? 100 * u / st : null }; }
 var ALL = tally(ROWS);
 var LAST = IXDAYS.length ? IXDAYS[IXDAYS.length - 1] : null;
-var RECORD = rec(LAST && LAST.record_after) || { W: ALL.W, L: ALL.L, P: ALL.P };
-var UNITS = LAST && num(LAST.units_after) != null ? num(LAST.units_after) : ALL.u;
-var ROI = ALL.st ? 100 * UNITS / ALL.st : null;
+var LEDGER = IX.ledger || null, LO = LEDGER && LEDGER.overall;
+var RECORD = LO ? { W: LO.W, L: LO.L, P: LO.P } : (rec(LAST && LAST.record_after) || { W: ALL.W, L: ALL.L, P: ALL.P });
+var UNITS = LO && num(LO.units) != null ? num(LO.units) : (LAST && num(LAST.units_after) != null ? num(LAST.units_after) : ALL.u);
+var ROI = LO && LO.roi != null ? LO.roi : (ALL.st ? 100 * UNITS / ALL.st : null);
 function lastN(n){ var s = IXDAYS.slice(-n); var u = 0; s.forEach(function(x){ u += num(x.units_day) || 0; }); return u; }
 function rowsSince(n){ var cut = DATES.slice(-n)[0]; return ROWS.filter(function(r){ return r.day >= cut; }); }
 
@@ -503,8 +504,8 @@ function kstrip(date){
   var risk = 0; openRows.forEach(function(r){ risk += stake(r.p); });
   var cn = num(e.clv_n), cd = num(e.clv_d), c0 = ((IX.stats || {}).clv || [])[0] || {};
   var cells = [
-    ["Record", e.record_after || (RECORD.W + "–" + RECORD.L), isT ? "all time" : "after this day", ""],
-    ["Units", fU(e.units_after != null ? e.units_after : UNITS), "day " + fU(e.units_day), cls(e.units_after != null ? e.units_after : UNITS)],
+    ["Record", isT && LO ? RECORD.W + "–" + RECORD.L + (RECORD.P ? "–" + RECORD.P : "") : (e.record_after || (RECORD.W + "–" + RECORD.L)), isT ? (LO ? "all time · graded by ESPN" : "all time") : "after this day", ""],
+    ["Units", fU(isT && LO ? UNITS : (e.units_after != null ? e.units_after : UNITS)), "day " + fU(e.units_day), cls(isT && LO ? UNITS : (e.units_after != null ? e.units_after : UNITS))],
     ["Open", openRows.length + " · " + (Math.round(risk * 100) / 100) + "u", isT ? "tickets at risk" : "logged open", "neu"],
     ["CLV coverage", cn != null && cd ? cn + "/" + cd + " (" + Math.round(100 * cn / cd) + "%)" : (e.clv_coverage || "—"), "rows with a real close", ""],
     ["Mean CLV", c0.mean != null ? fP(c0.mean, 2) : "—", c0.n != null ? "n=" + c0.n + " · beat " + c0.beat : "", cls(c0.mean)]
@@ -787,8 +788,25 @@ function renderPerformance(){
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, color: curveColor(UNITS), label: "cumulative units, all time" }) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + breakdown("brk", BRK) +
     '<div class="card"><div class="card-h"><h2>Calibration</h2><a class="link" href="#/clv">CLV Lab →</a></div>' + (st.calibration ? '<div class="prose"><p>' + md(st.calibration) + "</p></div>" : '<div class="empty">No calibration line yet.</div>') + '<div class="sec-t">CLV coverage trend</div>' + clvTrend() + "</div></div>" +
+    modelVsMarket() +
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Where the money leaks</h2><span class="sub">tap a row for the read</span></div>' + leaks.map(function(l){ return '<details class="lrow" style="border-top:1px solid var(--line)"><summary style="list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center"><span class="t">' + esc(l.seg) + '</span><span class="mono mut">' + esc(l.record) + '</span><span class="mono ' + ({ neg: "neg", pos: "pos" }[l.tone] || "") + '" style="font-weight:700;min-width:64px;text-align:right">' + esc(l.units) + '</span></summary><div class="b prose" style="margin-top:8px">' + md(l.read) + "</div></details>"; }).join("") + "</div>" +
     '<details class="more" style="margin-top:16px"><summary>EV, thesis and anchor bands</summary><div class="in">' + bandTbl("EV bands", bands.ev) + bandTbl("Thesis bands", bands.thesis) + bandTbl("Anchor bands", bands.anchor) + (bands.note ? '<p class="sub" style="margin-top:10px">' + md(bands.note) + "</p>" : "") + "</div></details>";
+}
+
+function modelVsMarket(){
+  var at = LEDGER && LEDGER.adjustment_test, all = at && at.all;
+  if (!all) return "";
+  var cal = LEDGER.calibration || {};
+  var rows = Object.keys(at.by_sport || {}).map(function(k){ var x = at.by_sport[k]; return x ? { k: k, x: x } : null; }).filter(Boolean).sort(function(a, b){ return b.x.n - a.x.n; });
+  var verdict = function(x){ return x.brier_model < x.brier_anchor ? '<span class="tg2 win">helped</span>' : x.brier_model > x.brier_anchor ? '<span class="tg2 loss">hurt</span>' : '<span class="tg2">even</span>'; };
+  return '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Model vs market</h2><span class="sub">do the adjustments beat the market line? lower Brier is better</span></div>' +
+    '<div class="tiles4" style="margin-bottom:14px">' +
+    '<div class="tile"><div class="l">Market (anchor) Brier</div><div class="v">' + all.brier_anchor.toFixed(4) + '</div><div class="s">n=' + all.n + " graded singles</div></div>" +
+    '<div class="tile"><div class="l">Model Brier</div><div class="v ' + (all.brier_model < all.brier_anchor ? "pos" : "neg") + '">' + all.brier_model.toFixed(4) + '</div><div class="s">' + esc(all.verdict) + "</div></div>" +
+    '<div class="tile"><div class="l">Mean adjustment</div><div class="v">' + (all.mean_adjustment_pts > 0 ? "+" : "") + all.mean_adjustment_pts + ' pts</div><div class="s">model minus market, probability points</div></div>' +
+    '<div class="tile"><div class="l">Calibration</div><div class="v" style="font-size:17px;white-space:normal">' + (cal.stated_mean != null ? cal.stated_mean + "% → " + cal.hit_rate + "%" : "—") + '</div><div class="s">stated confidence → actual hit rate (n=' + esc(cal.n) + ")</div></div></div>" +
+    (rows.length ? '<table class="tbl"><thead><tr><th>Sport</th><th class="r">n</th><th class="r">Market</th><th class="r">Model</th><th class="r hide-m">Adj.</th><th class="r">Verdict</th></tr></thead><tbody>' + rows.map(function(r){ return '<tr><td><span style="display:inline-flex;gap:8px;align-items:center;white-space:nowrap">' + badge(r.k, "sm") + esc(r.k) + '</span></td><td class="r mono">' + r.x.n + '</td><td class="r mono">' + r.x.brier_anchor.toFixed(3) + '</td><td class="r mono">' + r.x.brier_model.toFixed(3) + '</td><td class="r mono hide-m">' + (r.x.mean_adjustment_pts > 0 ? "+" : "") + r.x.mean_adjustment_pts + '</td><td class="r">' + verdict(r.x) + "</td></tr>"; }).join("") + "</tbody></table>" : "") +
+    '<p class="sub" style="margin-top:10px">Small samples swing; the weekly review caps adjustments in a sport once it has 30+ picks and the model is worse than the market.' + (LEDGER.open_audits ? " " + LEDGER.open_audits + " grade audit(s) waiting." : "") + "</p></div>";
 }
 
 /* ---------- CLV LAB ---------- */

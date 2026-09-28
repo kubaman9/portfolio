@@ -140,6 +140,10 @@ def main():
         date = d.pop("_id")
         days[str(date)] = d
     index.pop("_id", None)
+    ledger = db.ledger_summary.find_one({"_id": "current"})
+    if ledger:  # exact numbers from tools/ledger/pipeline.py for the page
+        ledger.pop("_id", None)
+        index["ledger"] = ledger
 
     public = cfg.get("public_page") is True or os.environ.get("BET_PUBLIC") == "1"
     passphrase = os.environ.get("BET_PAGE_PASSPHRASE") or cfg.get("page_passphrase")

@@ -43,13 +43,19 @@ CASES = [
 ]
 p1 = S("2026-09-27", "NFL", "Arizona +7.5 + Denver +2.5", "Parlay: Arizona Cardinals +7.5 + Denver Broncos +2.5", "Parlay", "WIN", dec=3.5694)
 p1["legs"] = [L("2026-09-27|ARI-SF", "spread", "Arizona Cardinals +7.5"), L("2026-09-27|LAR-DEN", "spread", "Denver Broncos +2.5", 1.8696)]
-p2 = S("2026-09-27", "NFL", "Denver Broncos @ Los Angeles Rams (SNF, SGP)", "Kyren Williams Over 54.5 rushing yards + Courtland Sutton Under 36.5 receiving yards", "Parlay", "WIN", dec=3.553)
+p2 = S("2026-09-27", "NFL", "Denver Broncos @ Los Angeles Rams (SNF, SGP)", "Kyren Williams Over 54.5 rushing yards + Courtland Sutton Under 36.5 receiving yards", "Parlay", "LOSS", dec=3.553)
+# ^ the ledger originally said WIN; the box score (Sutton 3-46) makes it a LOSS. Corrected 9/28.
 p2["legs"] = [L("2026-09-27|DEN-LAR", "player_rushing_yards", "Kyren Williams Over 54.5", 1.885), L("2026-09-27|DEN-LAR", "player_receiving_yards", "Courtland Sutton Under 36.5", 1.885)]
 p3 = S("2026-09-27", "NFL", "Cincinnati Bengals @ Pittsburgh Steelers (SGP)", "Chase Brown Over 63.5 rushing yards + Aaron Rodgers Under 224.5 passing yards", "Parlay", "LOSS", dec=3.553)
 p3["legs"] = [L("2026-09-27|CIN-PIT", "player_rushing_yards", "Chase Brown Over 63.5", 1.885), L("2026-09-27|CIN-PIT", "player_passing_yards", "Aaron Rodgers Under 224.5", 1.885)]
 p4 = S("2026-09-26", "CFB", "CFB cross-game parlay", "Parlay: Penn State -9.5 + Mississippi State -4.5", "Parlay", "LOSS", dec=3.5)
 p4["legs"] = [L("2026-09-26|WISC-PSU", "spread", "Penn State -9.5", 1.8333), L("2026-09-26|MIZ-MSST", "spread", "Mississippi State -4.5")]
-CASES += [p1, p2, p3, p4]
+p5 = S("2026-09-26", "UFC", "UFC Vegas 121 cross-fight parlay", "Parlay: Montel Jackson ML + Rodolfo Vieira ML", "Parlay", "WIN", dec=2.426)
+p5["legs"] = [L("2026-09-26|UFC-SIMON-JACKSON", "fight_winner", "Montel Jackson", 1.5), L("2026-09-26|UFC-VIEIRA-BRYCZEK", "fight_winner", "Rodolfo Vieira", 1.6173)]
+CASES += [p1, p2, p3, p4, p5,
+          S("2026-09-26", "UFC", "Ricky Simon vs Montel Jackson (UFC Vegas 121)", "Montel Jackson Moneyline", "Fight Winner", "WIN", dec=1.5),
+          S("2026-09-26", "UFC", "Raul Rosas Jr. vs Raoni Barcelos (UFC Vegas 121, main event)", "Raoni Barcelos Moneyline", "Fight Winner", "LOSS", stake=0.25, dec=2.36),
+          S("2026-09-19", "UFC", "Joshua Van vs Alexandre Pantoja (UFC 331 Main Event)", "Alexandre Pantoja Moneyline", "Fight Winner", "LOSS", dec=2.14)]
 
 
 def main():

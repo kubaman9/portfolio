@@ -152,6 +152,39 @@ def final_score_text(ev):
     return f"{away['team'].get('abbreviation')} {away.get('score')} @ {home['team'].get('abbreviation')} {home.get('score')} (final, ESPN)"
 
 
+FIGHT_SPORTS = {"UFC", "MMA"}
+
+
+def fight_result(fighter, date):
+    """WIN/LOSS for a UFC fighter's bout on date (+/- 1 day) from ESPN; None if unsure
+    (not found, not final, draw or no contest)."""
+    import datetime as _dt
+    want = norm(re.sub(r"\b(moneyline|ml|to win|fight winner)\b", " ", fighter, flags=re.I))
+    base = _dt.date.fromisoformat(date)
+    for delta in (0, 1, -1):
+        day = (base + _dt.timedelta(days=delta)).isoformat()
+        try:
+            events = scoreboard("mma", "ufc", day)
+        except RuntimeError:
+            continue
+        for ev in events:
+            for comp in ev.get("competitions", []):
+                names = [norm(c.get("athlete", {}).get("displayName")) for c in comp.get("competitors", [])]
+                if want not in names:
+                    continue
+                st = comp.get("status", {}).get("type", {})
+                if not (st.get("completed") and st.get("state") == "post"):
+                    return None
+                me = comp["competitors"][names.index(want)]
+                other = [c for c in comp["competitors"] if c is not me]
+                if me.get("winner") is True:
+                    return "WIN"
+                if other and other[0].get("winner") is True:
+                    return "LOSS"
+                return None  # draw / no contest: leave for the run
+    return None
+
+
 def grade_pick(p):
     """Return an update dict for a pick, or None when it cannot be graded safely."""
     sport = p.get("sport")
@@ -166,6 +199,11 @@ def grade_pick(p):
             leg = dict(leg)
             if leg.get("status") in ("WIN", "LOSS", "PUSH"):
                 st = leg["status"]
+            elif norm(leg.get("market")) in ("fight winner", "fight_winner", "moneyline") and (sport in FIGHT_SPORTS or "ufc" in norm(leg.get("game_key"))):
+                st = fight_result(leg.get("selection") or "", (leg.get("game_key") or p.get("date", "")).split("|")[0])
+                if st:
+                    leg["status"] = st
+                    notes.append(f"{leg.get('selection')}: {st}")
             else:
                 spec = parse(leg.get("selection"), leg.get("market"), None, sport)
                 found = event_for_key(sport, leg.get("game_key"), leg.get("selection") if spec and spec["kind"] != "prop" else p.get("matchup"))
@@ -189,6 +227,13 @@ def grade_pick(p):
             return {"legs": new_legs} if changed else None  # partial: record legs, keep OPEN
         return {"result": res, "units": units, "legs": new_legs,
                 "grade_note": "pipeline: " + "; ".join(notes) if notes else "pipeline"}
+    if sport in FIGHT_SPORTS and not p.get("legs"):
+        if norm(p.get("bet_type")) not in ("fight winner", "moneyline") and not re.search(r"\b(moneyline|ml)\b", norm(p.get("bet"))):
+            return None  # method / round markets stay with the run
+        res = fight_result(p.get("bet") or "", p.get("date"))
+        if not res:
+            return None
+        return {"result": res, "units": units_for(res, stake, dec), "final_score": "ESPN UFC result"}
     spec = parse(p.get("bet"), None, p.get("bet_type"), sport)
     if not spec:
         return None
