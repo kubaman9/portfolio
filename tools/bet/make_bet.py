@@ -78,10 +78,11 @@ def main():
     ap.add_argument("--archive", required=True, help="path to the archive JSON file (index + days)")
     ap.add_argument("--out", required=True, help="output path, e.g. bet/index.html")
     ap.add_argument("--build-id", default=None, help="stamp written outside the ciphertext so freshness can be checked without decrypting (default: current UTC time)")
+    ap.add_argument("--public", action="store_true", help="publish the page unencrypted (no password gate)")
     args = ap.parse_args()
 
     passphrase = os.environ.get("BET_PAGE_PASSPHRASE")
-    if not passphrase:
+    if not passphrase and not args.public:
         fail("BET_PAGE_PASSPHRASE is not set in the environment. Refusing to build with no passphrase or a default.")
 
     shell = open(args.template, encoding="utf-8").read()
@@ -119,9 +120,25 @@ def main():
     if sample_matchup and sample_matchup not in plaintext:
         fail(f"a known matchup ({sample_matchup!r}) from the archive is not present in the substituted page — substitution is suspect")
 
+    build_id = args.build_id or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if args.public:
+        # No gate: the dashboard itself is the page. The two freshness stamps go in
+        # its <head> so the run can still verify a build without parsing the data.
+        src_hash = hashlib.sha256(plaintext.encode("utf-8")).hexdigest()[:16]
+        stamps = f'<meta name="bet-build" content="{build_id}"><meta name="bet-src" content="{src_hash}">'
+        output = re.sub(r"<head>", "<head>" + stamps, plaintext, count=1, flags=re.I)
+        if stamps not in output:
+            fail("public build: could not find <head> to stamp")
+        if len(output.encode("utf-8")) <= MIN_OUTPUT_BYTES:
+            fail("public build is suspiciously small")
+        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(output)
+        print(f"OK: wrote {args.out} ({len(output.encode('utf-8'))} bytes, PUBLIC, no password), {len(archive['days'])} archived days, latest={archive['index'].get('latest_day')}")
+        return
+
     salt_b64, iv_b64, ct_b64 = encrypt(plaintext, passphrase)
 
-    build_id = args.build_id or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     # Short hash of the plaintext so a publisher can tell whether the content changed
     # without decrypting; 16 hex chars of a ~300KB document reveals nothing usable.
     src_hash = hashlib.sha256(plaintext.encode("utf-8")).hexdigest()[:16]

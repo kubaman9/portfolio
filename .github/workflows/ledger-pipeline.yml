@@ -1,0 +1,65 @@
+name: Ledger pipeline (grading, CLV, audit, summary)
+
+# The bookkeeping half of the betting agent. Runs free on GitHub, uses no Claude
+# credits, and hands the daily run exact numbers (see tools/ledger/pipeline.py).
+# Secrets: MONGODB_URI (required), SHARPAPI_KEY (optional, enables prop pre-kick prices).
+
+on:
+  schedule:
+    - cron: "15 6 * * *"          # 2:15am ET: grade last night, closes, audit, summary (before the 3am run)
+    - cron: "15 15 * * *"         # 11:15am ET: late finishes, overnight soccer
+    - cron: "*/20 16-23 * * *"    # afternoon/evening: prop prices in the last 75 min before kickoff
+    - cron: "*/20 0-3 * * *"      # late evening ET
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "tools/ledger/**"
+      - ".github/workflows/ledger-pipeline.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ledger-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Skip cleanly if the Mongo secret is not configured
+        id: guard
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          if [ -z "$MONGODB_URI" ]; then echo "::warning::MONGODB_URI not set"; echo "go=false" >> "$GITHUB_OUTPUT"; else echo "go=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.go == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        if: steps.guard.outputs.go == 'true'
+        run: pip install -q pymongo
+
+      - name: Pick the steps for this trigger
+        id: steps
+        if: steps.guard.outputs.go == 'true'
+        run: |
+          case "${{ github.event.schedule }}" in
+            "*/20 16-23 * * *"|"*/20 0-3 * * *") echo "list=prekick" >> "$GITHUB_OUTPUT" ;;
+            *) echo "list=grade close audit enrich summary" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Run pipeline
+        if: steps.guard.outputs.go == 'true'
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SHARPAPI_KEY: ${{ secrets.SHARPAPI_KEY }}
+        run: python3 tools/ledger/pipeline.py ${{ steps.steps.outputs.list }}

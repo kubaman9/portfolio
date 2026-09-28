@@ -141,8 +141,9 @@ def main():
         days[str(date)] = d
     index.pop("_id", None)
 
+    public = cfg.get("public_page") is True or os.environ.get("BET_PUBLIC") == "1"
     passphrase = os.environ.get("BET_PAGE_PASSPHRASE") or cfg.get("page_passphrase")
-    if not passphrase:
+    if not passphrase and not public:
         print("BUILD REFUSED: no passphrase in env or site_config.page_passphrase", file=sys.stderr)
         sys.exit(1)
 
@@ -154,9 +155,11 @@ def main():
         json.dump({"index": index, "days": days}, open(arch_p, "w", encoding="utf-8"),
                   ensure_ascii=False, default=str)
 
-        env = dict(os.environ, BET_PAGE_PASSPHRASE=passphrase)
-        run = lambda: subprocess.run([sys.executable, os.path.join(HERE, "make_bet.py"),
-                                      "--template", shell_p, "--archive", arch_p, "--out", out_p], env=env)
+        env = dict(os.environ, BET_PAGE_PASSPHRASE=passphrase or "")
+        cmd = [sys.executable, os.path.join(HERE, "make_bet.py"), "--template", shell_p, "--archive", arch_p, "--out", out_p]
+        if public:
+            cmd.append("--public")
+        run = lambda: subprocess.run(cmd, env=env)
         r = run()
         if r.returncode != 0 and repo_shell and used != "repo" and not used.startswith("repo (") and tpl["html_shell"] != repo_shell:
             fallback_reason = "make_bet.py refused the Mongo template"
