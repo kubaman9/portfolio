@@ -167,22 +167,46 @@ def core_odds(sport, league, event_id):
     return items[0]
 
 
+def _num(val, label):
+    v = str(val)
+    if label == "IP":  # innings -> outs recorded ("5.2" = 17 outs)
+        whole, _, part = v.partition(".")
+        return float(int(whole or 0) * 3 + int(part or 0))
+    if label in ("C/ATT", "3PT", "FG", "FT", "H-AB"):
+        v = re.split(r"[/-]", v)[0]
+    return float(v)
+
+
 def player_stat(summ, player, stat_key):
-    """stat_key like ('passing','YDS'). Returns float or None if the player is not in the box score."""
-    group, label = stat_key
+    """stat_key: (group, label) or a list of them to sum (e.g. points+rebounds+assists).
+    group matches the box score table's name or type (None = any table).
+    Returns float, or None if the player is not in the box score (DNP)."""
+    keys = stat_key if isinstance(stat_key, list) else [stat_key]
     pn = norm(player)
-    for team in (summ.get("boxscore") or {}).get("players", []):
-        for st in team.get("statistics", []):
-            if st.get("name") != group:
-                continue
-            labels = st.get("labels", [])
-            if label not in labels:
-                continue
-            idx = labels.index(label)
-            for a in st.get("athletes", []):
-                if norm(a.get("athlete", {}).get("displayName")) == pn:
-                    try:
-                        return float(str(a["stats"][idx]).split("/")[0])
-                    except (ValueError, IndexError):
-                        return None
-    return None
+    total, found = 0.0, 0
+    for group, label in keys:
+        hit = None
+        for team in (summ.get("boxscore") or {}).get("players", []):
+            for st in team.get("statistics", []):
+                if group is not None and group not in (st.get("name"), st.get("type")):
+                    continue
+                labels = st.get("labels", [])
+                if label not in labels:
+                    continue
+                idx = labels.index(label)
+                for a in st.get("athletes", []):
+                    if norm(a.get("athlete", {}).get("displayName")) == pn and a.get("stats"):
+                        try:
+                            hit = _num(a["stats"][idx], label)
+                        except (ValueError, IndexError):
+                            return None
+                        break
+                if hit is not None:
+                    break
+            if hit is not None:
+                break
+        if hit is None:
+            return None
+        total += hit
+        found += 1
+    return total if found == len(keys) else None

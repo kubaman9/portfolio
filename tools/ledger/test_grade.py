@@ -55,7 +55,11 @@ p5["legs"] = [L("2026-09-26|UFC-SIMON-JACKSON", "fight_winner", "Montel Jackson"
 CASES += [p1, p2, p3, p4, p5,
           S("2026-09-26", "UFC", "Ricky Simon vs Montel Jackson (UFC Vegas 121)", "Montel Jackson Moneyline", "Fight Winner", "WIN", dec=1.5),
           S("2026-09-26", "UFC", "Raul Rosas Jr. vs Raoni Barcelos (UFC Vegas 121, main event)", "Raoni Barcelos Moneyline", "Fight Winner", "LOSS", stake=0.25, dec=2.36),
-          S("2026-09-19", "UFC", "Joshua Van vs Alexandre Pantoja (UFC 331 Main Event)", "Alexandre Pantoja Moneyline", "Fight Winner", "LOSS", dec=2.14)]
+          S("2026-09-19", "UFC", "Joshua Van vs Alexandre Pantoja (UFC 331 Main Event)", "Alexandre Pantoja Moneyline", "Fight Winner", "LOSS", dec=2.14),
+          # MLB props against the 9/26 Mets @ Nationals box score (Tong 5.0 IP, 9 K; Lindor 0-4)
+          S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Jonah Tong Over 7.5 Strikeouts", "Player Prop", "WIN", dec=1.9),
+          S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Jonah Tong Over 15.5 Outs Recorded", "Player Prop", "LOSS", dec=1.9),
+          S("2026-09-26", "MLB", "New York Mets @ Washington Nationals", "Francisco Lindor Over 0.5 Hits", "Player Prop", "LOSS", dec=1.9)]
 
 
 def main():

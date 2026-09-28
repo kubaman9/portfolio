@@ -7,15 +7,46 @@ from espn import (norm, find_event, event_state, competitors, score_of, team_nam
                   summary, core_odds, player_stat, scoreboard, LEAGUES)
 
 FOOTBALL = {"NFL", "CFB"}
-PROP_STATS = [  # (regex on text/market, (box score group, label))
-    (r"pass(ing)?[ _]?(yds|yards)", ("passing", "YDS")),
-    (r"rush(ing)?[ _]?(yds|yards)", ("rushing", "YDS")),
-    (r"(rec|receiving)[ _]?(yds|yards)", ("receiving", "YDS")),
-    (r"receptions", ("receiving", "REC")),
-    (r"rush(ing)?[ _]?attempts|carries", ("rushing", "CAR")),
-    (r"pass(ing)?[ _]?(td|tds|touchdowns)", ("passing", "TD")),
-    (r"completions", ("passing", "C/ATT")),
-]
+BASEBALL = {"MLB"}
+BASKETBALL = {"NBA", "WNBA", "CBB", "NCAAB"}
+# (regex on the selection text or market, stat key); first match wins, so combos come first
+PROP_STATS = {
+    "football": [
+        (r"pass(ing)?[ _]?(yds|yards)", ("passing", "YDS")),
+        (r"rush(ing)?[ _]?(yds|yards)", ("rushing", "YDS")),
+        (r"(rec|receiving)[ _]?(yds|yards)", ("receiving", "YDS")),
+        (r"receptions", ("receiving", "REC")),
+        (r"rush(ing)?[ _]?attempts|carries", ("rushing", "CAR")),
+        (r"pass(ing)?[ _]?(td|tds|touchdowns)", ("passing", "TD")),
+        (r"completions", ("passing", "C/ATT")),
+    ],
+    "baseball": [
+        (r"hits ?\+ ?runs ?\+ ?rbis?|h ?\+ ?r ?\+ ?rbi", [("batting", "H"), ("batting", "R"), ("batting", "RBI")]),
+        (r"strikeouts|pitcher[ _]k|\bks\b", ("pitching", "K")),
+        (r"outs recorded|pitching outs|\bouts\b", ("pitching", "IP")),
+        (r"hits allowed", ("pitching", "H")),
+        (r"earned runs", ("pitching", "ER")),
+        (r"home runs?|\bhrs?\b", ("batting", "HR")),
+        (r"\brbis?\b", ("batting", "RBI")),
+        (r"runs scored|batter[ _]runs", ("batting", "R")),
+        (r"\bhits\b|batter[ _]hits", ("batting", "H")),
+    ],
+    "basketball": [
+        (r"pts ?\+ ?reb ?\+ ?ast|points ?\+ ?rebounds ?\+ ?assists|\bpra\b", [(None, "PTS"), (None, "REB"), (None, "AST")]),
+        (r"pts ?\+ ?reb|points ?\+ ?rebounds", [(None, "PTS"), (None, "REB")]),
+        (r"pts ?\+ ?ast|points ?\+ ?assists", [(None, "PTS"), (None, "AST")]),
+        (r"threes|3[ -]?pointers|3pt|three[ -]point", (None, "3PT")),
+        (r"points|\bpts\b", (None, "PTS")),
+        (r"rebounds|\breb\b", (None, "REB")),
+        (r"assists|\bast\b", (None, "AST")),
+        (r"steals", (None, "STL")),
+        (r"blocks", (None, "BLK")),
+    ],
+}
+
+
+def family(sport):
+    return "football" if sport in FOOTBALL else "baseball" if sport in BASEBALL else "basketball" if sport in BASKETBALL else None
 
 
 def dec_from_american(a):
@@ -69,11 +100,13 @@ def parse(text, market, bet_type, sport):
     mk = norm(market or "").replace("_", " ")
     bt = norm(bet_type or "")
     ou = re.search(r"\b(over|under)\s*(\d+(?:\.\d+)?)", t)
-    is_prop = "player" in mk or bt == "player prop" or any(re.search(rx, t) or re.search(rx, mk) for rx, _ in PROP_STATS)
+    fam = family(sport)
+    table = PROP_STATS.get(fam, [])
+    is_prop = "player" in mk or "pitcher" in mk or "batter" in mk or bt == "player prop" or any(re.search(rx, t) or re.search(rx, mk) for rx, _ in table)
     if is_prop:
-        if sport not in FOOTBALL or not ou:
+        if not fam or not ou:
             return None
-        stat = next((s for rx, s in PROP_STATS if re.search(rx, mk) or re.search(rx, t)), None)
+        stat = next((s for rx, s in table if re.search(rx, mk) or re.search(rx, t)), None)
         player = re.split(r"\s+(?:over|under)\s+", text, flags=re.I)[0].strip()
         if not stat or not player:
             return None
