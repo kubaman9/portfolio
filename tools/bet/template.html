@@ -594,13 +594,28 @@ function pickRow(p, i, sel){
     '<div class="c-n"><span>' + fO(o) + '</span><span class="' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "% conf" : "") + '</span><span class="' + cls(ev) + '">' + (ev != null ? fP(ev) + " EV" : "") + "</span></div>" +
     "</div>";
 }
+function pickHistory(p){
+  var keys = (sides(p.matchup || "").map(nick).concat([String(p.bet || "").split(/\s+(?:over|under)\s+/i)[0]]))
+    .map(function(k){ return norm(k); }).filter(function(k){ return k.length >= 4 && !/\d/.test(k); });
+  var seen = {};
+  var hits = ROWS.filter(function(r){
+    if (!graded(r) || r.p === p || norm(r.p.bet) === norm(p.bet) && r.day === p.date) return false;
+    var hay = norm((r.p.matchup || "") + " " + (r.p.bet || r.p.shape || "") + " " + (r.p.legs && r.p.legs.map ? r.p.legs.map(function(l){ return l.selection; }).join(" ") : r.p.legs || ""));
+    return keys.some(function(k){ return hay.indexOf(k) >= 0; });
+  }).sort(function(a, b){ return a.day < b.day ? 1 : -1; }).filter(function(r){ var k = r.day + norm(r.p.bet || r.p.shape); if (seen[k]) return false; seen[k] = 1; return true; });
+  if (!hits.length) return '<p class="mut">No graded picks in the ledger involving these teams or this player yet.</p>';
+  var t = tally(hits);
+  return '<p><b>' + t.W + "–" + t.L + (t.P ? "–" + t.P : "") + '</b> <span class="' + cls(t.u) + '">' + fU(t.u) + '</span> <span class="mut">on ' + hits.length + " earlier picks touching " + esc(keys.slice(0, 3).join(", ")) + "</span></p>" +
+    hits.slice(0, 6).map(function(r){ var x = r.p; return '<div class="lrow" style="display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center"><span class="mono mut">' + fDs(r.day) + '</span><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(plain(r.kind === "slip" ? x.shape : x.bet)) + (num(x.clv) != null ? ' <span class="mono ' + cls(x.clv) + '" style="font-size:11px">CLV ' + fP(x.clv, 1) + "</span>" : "") + "</span>" + stat(x.result, x.units) + "</div>"; }).join("");
+}
 function detail(p){
   if (!p) return '<div class="empty">No single picks on this card.</div>';
   var o = odds(p), b = be(o), conf = num(p.confidence), ev = num(p.ev_pct);
   var why = [p.line_gap_thesis, p.why, p.reasoning].filter(Boolean);
-  var tabs = [["analysis", "Analysis"], ["risk", "Risk"], ["data", "Details"]];
+  var tabs = [["analysis", "Analysis"], ["risk", "Risk"], ["hist", "History"], ["data", "Details"]];
   var body = "";
   if (state.tab === "analysis") body = why.length ? why.map(function(t){ return "<p>" + md(t) + "</p>"; }).join("") + (p.note ? '<p class="mut">' + md(p.note) + "</p>" : "") : '<p class="mut">No write-up logged for this pick.</p>';
+  else if (state.tab === "hist") body = pickHistory(p);
   else if (state.tab === "risk") body = (p.wrong_if || p.falsifier) ? "<p>" + md(p.wrong_if || p.falsifier) + "</p>" : '<p class="mut">No "wrong if" logged for this pick.</p>';
   else body = '<dl class="kv">' + [["Book", p.book], ["Line", p.line], ["Bet type", p.bet_type], ["Tier", p.tier], ["Break-even", b != null ? b.toFixed(1) + "%" : null], ["Anchor quality", p.anchor_quality], ["Thesis", p.thesis_quality], ["Close", p.close], ["CLV", p.clv != null ? fP(p.clv, 2) : null], ["Line CLV", p.clv_points != null ? p.clv_points + " pts" : null], ["Graded", p._graded_on ? fD(p._graded_on) : null]].filter(function(x){ return x[1] != null && x[1] !== ""; }).map(function(x){ return "<dt>" + x[0] + "</dt><dd>" + esc(plain(x[1])) + "</dd>"; }).join("") + "</dl>";
   return '<div class="detail-top">' + badge(p.sport, "lg") + '<div style="min-width:0"><h3>' + esc(plain(p.bet)) + '</h3><div class="sub">' + esc(plain(p.matchup)) + (p.game_time ? " · " + esc(p.game_time) : "") + "</div></div></div>" +
