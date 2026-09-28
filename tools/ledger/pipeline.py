@@ -188,6 +188,39 @@ def step_audit(db):
     log(f"audit: {found} disagreements written to grade_audit")
 
 
+def wilson(w, n, z=1.96):
+    if not n:
+        return None, None
+    p = w / n
+    d = 1 + z * z / n
+    c = p + z * z / (2 * n)
+    m = z * ((p * (1 - p) + z * z / (4 * n)) / n) ** 0.5
+    return round(100 * (c - m) / d, 1), round(100 * (c + m) / d, 1)
+
+
+def flags_for(groups):
+    """Segment gates the daily run reads (playbook module auto_gates). Tighten-only:
+    'tighten' when even the optimistic end of the hit-rate interval is below the
+    break-even the segment's prices require; 'watch' when CLV says the prices were
+    bad; 'strength' is informational and never loosens anything."""
+    out = []
+    for gname, segs in groups.items():
+        for k, x in segs.items():
+            n = x["W"] + x["L"]
+            if x.get("be") is not None and n >= 25 and x["wilson_hi"] is not None and x["wilson_hi"] < x["be"]:
+                out.append({"flag": "tighten", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
+                            "units": x["units"], "hit_ci": [x["wilson_lo"], x["wilson_hi"]], "breakeven": x["be"],
+                            "why": f"best case {x['wilson_hi']}% < break-even {x['be']}%"})
+            elif x.get("n_clv", 0) >= 10 and x.get("mean_clv") is not None and x["mean_clv"] <= -1.0:
+                out.append({"flag": "watch", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
+                            "units": x["units"], "mean_clv": x["mean_clv"], "why": f"mean CLV {x['mean_clv']}% on {x['n_clv']} priced rows"})
+            elif x.get("n_clv", 0) >= 15 and (x.get("mean_clv") or 0) >= 1.0 and x["beat_close"] / x["n_clv"] >= 0.55:
+                out.append({"flag": "strength", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
+                            "units": x["units"], "mean_clv": x["mean_clv"], "why": "beats the close consistently"})
+    order = {"tighten": 0, "watch": 1, "strength": 2}
+    return sorted(out, key=lambda f: (order[f["flag"]], -f["n"]))
+
+
 def _band(conf):
     if conf is None:
         return None
@@ -198,7 +231,7 @@ def step_summary(db):
     rows = list(db.picks.find({"date": {"$gte": FIRST_LIVE_DAY}}, {
         "date": 1, "sport": 1, "bet_type": 1, "result": 1, "units": 1, "stake_units": 1, "clv": 1,
         "confidence": 1, "anchor_prob": 1, "model_prob": 1, "legs": 1, "slip_type": 1, "tags": 1,
-        "anchor_quality": 1, "thesis_quality": 1, "ev_pct": 1}))
+        "anchor_quality": 1, "thesis_quality": 1, "ev_pct": 1, "price_decimal": 1}))
     graded = [r for r in rows if r.get("result") in ("WIN", "LOSS", "PUSH")]
 
     def seg(items):
@@ -208,7 +241,10 @@ def step_summary(db):
         u = round(sum(r.get("units") or 0 for r in items), 3)
         st = sum(r.get("stake_units") or (-(r.get("units") or 0) if r["result"] == "LOSS" else 0.5) for r in items)
         clvs = [r["clv"] for r in items if isinstance(r.get("clv"), (int, float))]
+        decs = [r["price_decimal"] for r in items if isinstance(r.get("price_decimal"), (int, float)) and r["price_decimal"] > 1]
+        lo, hi = wilson(W, W + L)
         return {"W": W, "L": L, "P": P, "units": u, "hit": round(100 * W / (W + L), 1) if W + L else None,
+                "wilson_lo": lo, "wilson_hi": hi, "be": round(100 * sum(1 / d for d in decs) / len(decs), 1) if decs else None,
                 "roi": round(100 * u / st, 1) if st else None, "n_clv": len(clvs),
                 "mean_clv": round(sum(clvs) / len(clvs), 2) if clvs else None,
                 "beat_close": sum(c > 0 for c in clvs)}
@@ -256,6 +292,11 @@ def step_summary(db):
                  "units_at_risk": round(sum(r.get("stake_units") or 0 for r in rows if r.get("result") == "OPEN"), 2)},
         "open_audits": db.grade_audit.count_documents({"status": "open"}),
     }
+    sport_type = by(lambda r: f"{r.get('sport')}/{r.get('bet_type')}" if not r.get("legs") else None)
+    doc["by_sport_bet_type"] = sport_type
+    doc["flags"] = flags_for({"sport": doc["by_sport"], "bet_type": doc["by_bet_type"], "slip_type": doc["by_slip_type"],
+                              "conf_band": doc["by_conf_band"], "sport_bet_type": sport_type,
+                              "structure": {"singles": doc["singles"], "parlays": doc["parlays"]}})
     db.ledger_summary.replace_one({"_id": "current"}, doc, upsert=True)
     db.ledger_summary.replace_one({"_id": NOW.date().isoformat()}, dict(doc, _id=NOW.date().isoformat()), upsert=True)
     o = doc["overall"]
