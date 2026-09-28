@@ -788,11 +788,19 @@ function renderPerformance(){
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Units over time</h2><span class="sub">cumulative, by pick date</span></div>' + line(IXDAYS.map(function(x){ return num(x.units_after) || 0; }), IXDAYS.map(function(x){ return fDs(x.date); }), 900, 220, { axis: true, ticks: 9, color: curveColor(UNITS), label: "cumulative units, all time" }) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + breakdown("brk", BRK) +
     '<div class="card"><div class="card-h"><h2>Calibration</h2><a class="link" href="#/clv">CLV Lab →</a></div>' + (st.calibration ? '<div class="prose"><p>' + md(st.calibration) + "</p></div>" : '<div class="empty">No calibration line yet.</div>') + '<div class="sec-t">CLV coverage trend</div>' + clvTrend() + "</div></div>" +
-    modelVsMarket() + gatesCard() +
+    modelVsMarket() + gatesCard() + anglesCard() +
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Where the money leaks</h2><span class="sub">tap a row for the read</span></div>' + leaks.map(function(l){ return '<details class="lrow" style="border-top:1px solid var(--line)"><summary style="list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center"><span class="t">' + esc(l.seg) + '</span><span class="mono mut">' + esc(l.record) + '</span><span class="mono ' + ({ neg: "neg", pos: "pos" }[l.tone] || "") + '" style="font-weight:700;min-width:64px;text-align:right">' + esc(l.units) + '</span></summary><div class="b prose" style="margin-top:8px">' + md(l.read) + "</div></details>"; }).join("") + "</div>" +
     '<details class="more" style="margin-top:16px"><summary>EV, thesis and anchor bands</summary><div class="in">' + bandTbl("EV bands", bands.ev) + bandTbl("Thesis bands", bands.thesis) + bandTbl("Anchor bands", bands.anchor) + (bands.note ? '<p class="sub" style="margin-top:10px">' + md(bands.note) + "</p>" : "") + "</div></details>";
 }
 
+function anglesCard(){
+  var t = LEDGER && LEDGER.by_tag;
+  if (!t) return "";
+  var rows = Object.keys(t).map(function(k){ var x = t[k]; return { k: k.replace(/_/g, " "), W: x.W, L: x.L, u: x.units, clv: x.mean_clv, nclv: x.n_clv }; }).sort(function(a, b){ return b.u - a.u; });
+  if (!rows.length) return "";
+  return '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Angles</h2><span class="sub">results by the tag on each pick · bar = hit rate</span></div>' + bars(rows) +
+    '<p class="sub" style="margin-top:10px">' + rows.filter(function(r){ return r.clv != null && r.nclv >= 5; }).map(function(r){ return esc(r.k) + " CLV " + fP(r.clv, 2); }).join(" · ") + "</p></div>";
+}
 function gatesCard(){
   var f = LEDGER && LEDGER.flags;
   if (!f || !f.length) return "";
