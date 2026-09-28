@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta name="bet-build" content="2026-09-28T06:13:52Z"><meta name="bet-src" content="cd9d0910a0b7702f">
+<head><meta name="bet-build" content="2026-09-28T06:14:35Z"><meta name="bet-src" content="8b5c72aeed4c8924">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -277,7 +277,8 @@ details.more>.in{padding:0 16px 16px}
 .tg2.mq{color:var(--gold);background:var(--yellowbg);border-color:rgba(245,181,24,.45)}
 .meter{height:5px;border-radius:9px;background:#1a2430;overflow:hidden}
 .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ffd54a);border-radius:9px}
-.meter.thin{height:3px;margin-top:5px;max-width:70px}
+.meter.thin{height:4px;margin-top:5px;max-width:74px;position:relative;overflow:visible}
+.meter.thin b{position:absolute;top:-3px;width:2px;height:10px;background:#e8eef5;border-radius:1px;box-shadow:0 0 0 1px #070b10}
 .mrow{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
 .quote{border-left:3px solid var(--gold);padding:4px 0 4px 14px;font-style:italic;font-size:15px;color:#dbe3ec;line-height:1.5}
 .quote .by{font-style:normal;color:var(--muted);font-size:12px;margin-top:8px}
@@ -587,7 +588,7 @@ function pickRow(p, i, sel){
     '<div class="c-m"><div class="t" title="' + esc(plain(p.matchup)) + '">' + esc(shortM(p.matchup)) + '</div><div class="s">' + esc(meta || p.sport) + "</div></div>" +
     '<div class="c-p"><div class="t" title="' + esc(plain(p.bet)) + '">' + esc(shortB(p.bet, p.matchup)) + q(p.anchor_quality) + '</div><div class="s">' + esc(plain(p.bet_type || p.line || "")) + "</div></div>" +
     '<div class="c-o"><div class="num">' + fO(o) + '</div><div class="s">Odds</div></div>' +
-    '<div class="c-c"><div class="num ' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "%" : "—") + '</div><div class="s">' + (b != null ? "BE " + b.toFixed(1) + "%" : "Confidence") + '</div><div class="meter thin"><i style="width:' + (conf || 0) + '%"></i></div></div>' +
+    '<div class="c-c"><div class="num ' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "%" : "—") + '</div><div class="s">' + (b != null ? "BE " + b.toFixed(1) + "%" : "Confidence") + '</div><div class="meter thin" title="' + esc((conf != null ? "confidence " + conf + "%" : "") + (b != null ? " vs break-even " + b.toFixed(1) + "% (white tick)" : "")) + '"><i style="width:' + (conf || 0) + '%"></i>' + (b != null ? '<b style="left:' + Math.min(100, b).toFixed(1) + '%"></b>' : "") + "</div></div>" +
     '<div class="c-e"><div class="num ' + cls(ev) + '">' + fP(ev) + '</div><div class="s">EV</div></div>' +
     '<div class="c-st r">' + stat(p.result, p.units) + '<div class="s" style="margin-top:4px">' + (st != null ? st + "u stake" : "") + "</div></div>" +
     '<div class="c-n"><span>' + fO(o) + '</span><span class="' + (conf != null && b != null ? (conf > b ? "pos" : "neg") : "") + '">' + (conf != null ? conf + "% conf" : "") + '</span><span class="' + cls(ev) + '">' + (ev != null ? fP(ev) + " EV" : "") + "</span></div>" +
@@ -713,7 +714,7 @@ function dayBars(days, opt){
     if (Math.abs(u) < 0.005) { y = mid - 1.5; h = 3; }
     sv += '<a href="#/day/' + x.date + '"><title>' + esc(fD(x.date, true) + ": " + fU(u) + (x.record_after ? " · " + x.record_after : "") + (x.picks != null ? " · " + x.picks + " picks" : "")) + '</title><rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4" fill="' + col + '"/>' +
       '<rect x="' + (slot * i).toFixed(1) + '" y="0" width="' + slot.toFixed(1) + '" height="' + H + '" fill="transparent"/></a>';
-    if (i % every === 0 || i === n - 1) sv += '<text x="' + cx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + dd(x.date).getUTCDate() + "</text>";
+    if (i % every === 0 || (i === n - 1 && i % every >= Math.ceil(every / 2))) sv += '<text x="' + cx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + dd(x.date).getUTCDate() + "</text>";
   });
   return sv + "</svg>";
 }
@@ -858,6 +859,13 @@ function renderHistory(){
 }
 
 /* ---------- PARLAYS ---------- */
+function parlayDayBars(all){
+  var by = {};
+  all.forEach(function(r){ if (!graded(r)) return; var d = r.day; by[d] = by[d] || { date: d, units_day: 0, n: 0, W: 0, L: 0 }; by[d].units_day += num(r.p.units) || 0; by[d].n++; if (String(r.p.result).toUpperCase() === "WIN") by[d].W++; else if (String(r.p.result).toUpperCase() === "LOSS") by[d].L++; });
+  var days = Object.keys(by).sort().map(function(d){ var x = by[d]; x.record_after = x.W + "-" + x.L + " slips"; x.picks = x.n; return x; });
+  if (!days.length) return "";
+  return '<div class="card" style="margin-bottom:16px"><div class="card-h"><h2>Parlay units by day</h2><span class="sub">slips only · each bar opens that day</span></div>' + dayBars(days, { h: 170 }) + "</div>";
+}
 function renderParlays(){
   topbar("<b>Parlay corner</b>", '<a class="pill btn" href="#/today">Today’s card</a>');
   var today = (DAYS[LATEST].slips || []).map(function(s){ return resolve(s, LATEST); });
@@ -865,6 +873,7 @@ function renderParlays(){
   var by = {}; all.forEach(function(r){ var t = slipType(r.p)[1]; (by[t] = by[t] || []).push(r); });
   var t = tally(all);
   document.getElementById("view").innerHTML =
+    parlayDayBars(all) +
     '<div class="card"><div class="card-h"><h2>Today’s slips</h2><span class="sub">' + esc(fD(LATEST, true)) + "</span></div>" + (today.length ? '<div class="slips">' + today.map(slipCard).join("") + "</div>" : '<div class="empty">No parlays on today’s card.</div>') + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' +
     '<div class="card"><div class="card-h"><h2>Parlay record</h2><span class="mono" style="font-weight:700">' + t.W + "–" + t.L + ' · <span class="' + cls(t.u) + '">' + fU(t.u) + "</span></span></div>" + bars(Object.keys(by).map(function(k){ var x = tally(by[k]); return { k: k, W: x.W, L: x.L, u: x.u }; })) + '<div class="sub" style="margin-top:12px">Hit rate ' + (t.wr != null ? t.wr.toFixed(1) + "%" : "—") + " · ROI " + fP(t.roi) + "</div></div>" +
