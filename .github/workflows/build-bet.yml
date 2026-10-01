@@ -9,11 +9,18 @@ name: Build betting dashboard from Mongo
 # The page passphrase is read from betting_agent.site_config.page_passphrase,
 # or from a BET_PAGE_PASSPHRASE secret if you add one.
 
+# GitHub runs schedules best-effort: busy minutes (:00, :15, :30) get delayed for
+# hours or dropped, and frequent schedules are thinned. So: odd minutes, several
+# tries in each window (each run is idempotent), and a rebuild after every ledger
+# pipeline run so grades reach the site without waiting for a schedule.
 on:
   schedule:
-    - cron: "*/10 7-12 * * *"   # after the 3am ET primary run
-    - cron: "*/10 20-23 * * *"  # after the ~4pm ET pre-kick refresh
-    - cron: "7 * * * *"         # hourly safety net
+    - cron: "23,41,53 7-9 * * *"   # ~3:20-5:55am ET, right after the 3am daily run
+    - cron: "37 */2 * * *"         # every 2 hours, safety net
+    - cron: "29,49 20-23 * * *"    # evening, after the afternoon refresh
+  workflow_run:
+    workflows: ["Ledger pipeline (grading, CLV, audit, summary)"]
+    types: [completed]
   workflow_dispatch:
   push:
     branches: [main]
@@ -30,6 +37,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Skip cleanly if the Mongo secret is not configured yet

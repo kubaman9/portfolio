@@ -5,11 +5,19 @@ name: Ledger pipeline (grading, CLV, audit, summary)
 # Secrets: MONGODB_URI (required), SHARPAPI_KEY (optional, enables prop pre-kick prices).
 
 on:
+  # Best-effort scheduling (see build-bet.yml): odd minutes and repeated tries.
+  # Every run is idempotent, so extra runs cost nothing but a few seconds.
   schedule:
-    - cron: "15 6 * * *"          # 2:15am ET: grade last night, closes, audit, summary (before the 3am run)
-    - cron: "15 15 * * *"         # 11:15am ET: late finishes, overnight soccer
-    - cron: "*/20 16-23 * * *"    # afternoon/evening: prop prices in the last 75 min before kickoff
-    - cron: "*/20 0-3 * * *"      # late evening ET
+    - cron: "23 5 * * *"          # 1:23am ET  } grade last night, closes, audit,
+    - cron: "41 5 * * *"          # 1:41am ET  } enrich, summary -- several tries so
+    - cron: "11 6 * * *"          # 2:11am ET  } at least one lands before the 3am run
+    - cron: "37 6 * * *"          # 2:37am ET  }
+    - cron: "23 13 * * *"         # 9:23am ET: late finishes, overnight soccer
+    - cron: "47 18 * * *"         # 2:47pm ET
+    - cron: "13 23 * * *"         # 7:13pm ET
+    # Prop pre-kick prices (needs the SHARPAPI_KEY secret; skipped cleanly without it)
+    - cron: "17,43 17-23 * * *"
+    - cron: "17,43 0-3 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -53,12 +61,13 @@ jobs:
         if: steps.guard.outputs.go == 'true'
         run: |
           case "${{ github.event.schedule }}" in
-            "*/20 16-23 * * *"|"*/20 0-3 * * *") echo "list=prekick" >> "$GITHUB_OUTPUT" ;;
+            "17,43 17-23 * * *"|"17,43 0-3 * * *")
+              if [ -z "${{ secrets.SHARPAPI_KEY }}" ]; then echo "list=" >> "$GITHUB_OUTPUT"; else echo "list=prekick" >> "$GITHUB_OUTPUT"; fi ;;
             *) echo "list=grade close audit enrich summary" >> "$GITHUB_OUTPUT" ;;
           esac
 
       - name: Run pipeline
-        if: steps.guard.outputs.go == 'true'
+        if: steps.guard.outputs.go == 'true' && steps.steps.outputs.list != ''
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           SHARPAPI_KEY: ${{ secrets.SHARPAPI_KEY }}

@@ -132,6 +132,7 @@ def step_grade(db):
 def step_close(db):
     done = 0
     q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "clv": None, "legs": {"$exists": False},
+         "clv_source": {"$ne": "espn_core_pipeline"},  # close already recorded (point moved -> clv stays null)
          "date": {"$gte": (NOW - dt.timedelta(days=10)).date().isoformat()}}
     for p in db.picks.find(q):
         spec = parse(p.get("bet"), None, p.get("bet_type"), p.get("sport"))
