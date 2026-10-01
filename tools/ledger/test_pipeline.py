@@ -43,6 +43,10 @@ db.dashboard_days.insert_one({"_id": D, "picks": [
                "legs": "Arizona Cardinals +7.5 (-110) + Denver Broncos +2.5 (-115)",
                "legs_detail": [{"selection": "Arizona Cardinals +7.5", "status": "OPEN"}, {"selection": "Denver Broncos +2.5", "status": "OPEN"}]}]})
 
+import datetime as _dt
+# a fresh pick missing its wrong_if/anchor fields, for the quality check (which looks back 3 days)
+db.picks.insert_one(dict(date=_dt.date.today().isoformat(), sport="NFL", matchup="A @ B", bet="A +3.5", bet_type="Spread",
+                         stake_units=0.5, price_decimal=1.91, result="OPEN", confidence=53, ev_pct=1.0, book="fanduel"))
 for step in ("grade", "close", "audit", "summary"):
     pipeline.STEPS[step](db)
 
@@ -69,6 +73,7 @@ check(len(audit) == 1 and audit[0]["espn_result"] == "LOSS", "audit caught the S
 s = db.ledger_summary.find_one({"_id": "current"})
 check(s and s["adjustment_test"]["all"]["n"] == 3, f"summary adjustment test n=3 ({(s or {}).get('adjustment_test')})")
 q = s.get("quality") or {}
-check(q.get("checked", 0) >= 1 and isinstance(q.get("missing"), list), f"quality check ran ({q.get('checked')} checked, {len(q.get('missing') or [])} with gaps)")
+gaps = {m["bet"]: m["fields"] for m in (q.get("missing") or [])}
+check("A +3.5" in gaps and "wrong_if/falsifier" in gaps["A +3.5"] and "anchor_prob" in gaps["A +3.5"], f"quality check flags the fresh pick's missing fields ({gaps.get('A +3.5')})")
 print(f"\n{len(fails)} failures")
 sys.exit(1 if fails else 0)
