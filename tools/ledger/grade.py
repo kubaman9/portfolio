@@ -4,7 +4,7 @@ pipeline then leaves the row for the daily run instead of guessing."""
 import re
 
 from espn import (norm, find_event, event_state, competitors, score_of, team_names,
-                  summary, core_odds, player_stat, scoreboard, LEAGUES)
+                  summary, core_odds, player_stat, total_bases, scoreboard, LEAGUES)
 
 FOOTBALL = {"NFL", "CFB"}
 BASEBALL = {"MLB"}
@@ -22,6 +22,7 @@ PROP_STATS = {
         (r"completions", ("passing", "C/ATT")),
     ],
     "baseball": [
+        (r"total bases|\btb\b", ("batting", "TB")),  # counted from plays, see espn.total_bases
         (r"hits ?\+ ?runs ?\+ ?rbis?|h ?\+ ?r ?\+ ?rbi", [("batting", "H"), ("batting", "R"), ("batting", "RBI")]),
         (r"strikeouts|pitcher[ _]k|\bks\b", ("pitching", "K")),
         (r"outs recorded|pitching outs|\bouts\b", ("pitching", "IP")),
@@ -166,7 +167,10 @@ def outcome(spec, ev, sport, sport_key, league):
         return "LOSS" if played else None  # did not play: void, leave for the run
     if spec["kind"] == "prop":
         summ = summary(sport_key, league, ev["id"])
-        val = player_stat(summ, spec["player"], spec["stat"])
+        if spec["stat"] == ("batting", "TB"):
+            val = total_bases(summ, spec["player"])
+        else:
+            val = player_stat(summ, spec["player"], spec["stat"])
         if val is None:
             return None  # DNP / name mismatch: leave it for a human-grade
         if val == spec["line"]:
@@ -309,6 +313,10 @@ def grade_pick(p):
     if not spec:
         return None
     found = find_event(sport, p.get("date"), p.get("matchup"))
+    if not found and spec["kind"] != "prop":
+        # free-text matchup did not resolve ("Greece @ Netherlands... (venue note)"):
+        # fall back to the game_key team codes, confirmed by the team named in the bet
+        found = event_for_key(sport, p.get("game_key"), p.get("bet"))
     if not found:
         return None
     sk, lg, ev = found

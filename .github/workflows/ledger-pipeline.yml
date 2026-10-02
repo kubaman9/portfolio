@@ -7,17 +7,20 @@ name: Ledger pipeline (grading, CLV, audit, summary)
 on:
   # Best-effort scheduling (see build-bet.yml): odd minutes and repeated tries.
   # Every run is idempotent, so extra runs cost nothing but a few seconds.
+  # Every run grades. A run that starts between 10pm and 3am ET stays alive and
+  # re-grades every 10 minutes until 3:20am ET (see "watch" below), because GitHub
+  # drops most scheduled runs and one surviving run must cover the whole night.
   schedule:
     - cron: "23 5 * * *"          # 1:23am ET  } grade last night, closes, audit,
-    - cron: "41 5 * * *"          # 1:41am ET  } enrich, summary -- several tries so
-    - cron: "11 6 * * *"          # 2:11am ET  } at least one lands before the 3am run
+    - cron: "41 5 * * *"          # 1:41am ET  } enrich, summary
+    - cron: "11 6 * * *"          # 2:11am ET  }
     - cron: "37 6 * * *"          # 2:37am ET  }
     - cron: "23 13 * * *"         # 9:23am ET: late finishes, overnight soccer
     - cron: "47 18 * * *"         # 2:47pm ET
     - cron: "13 23 * * *"         # 7:13pm ET
-    # Prop pre-kick prices (needs the SHARPAPI_KEY secret; skipped cleanly without it)
-    - cron: "17,43 17-23 * * *"
-    - cron: "17,43 0-3 * * *"
+    # Every ~26 minutes: grading (early finishes) plus prop pre-kick prices when the
+    # SHARPAPI_KEY secret is set. Many of these get dropped; the rest are the safety net.
+    - cron: "17,43 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -35,7 +38,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 340   # a watch run lasts up to ~5h20m (10pm -> 3:20am ET)
     steps:
       - name: Skip cleanly if the Mongo secret is not configured
         id: guard
@@ -59,16 +62,28 @@ jobs:
       - name: Pick the steps for this trigger
         id: steps
         if: steps.guard.outputs.go == 'true'
+        env:
+          HAS_SHARP: ${{ secrets.SHARPAPI_KEY != '' }}
         run: |
-          case "${{ github.event.schedule }}" in
-            "17,43 17-23 * * *"|"17,43 0-3 * * *")
-              if [ -z "${{ secrets.SHARPAPI_KEY }}" ]; then echo "list=" >> "$GITHUB_OUTPUT"; else echo "list=prekick" >> "$GITHUB_OUTPUT"; fi ;;
-            *) echo "list=grade close audit enrich summary" >> "$GITHUB_OUTPUT" ;;
+          # Every run grades (it used to be skipped on pre-kick runs, which left whole
+          # nights ungraded when those were the only runs GitHub actually started).
+          list="grade sync close audit enrich summary"
+          if [ "$HAS_SHARP" = "true" ]; then list="prekick $list"; fi
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+          # Overnight (10pm-2:59am ET): stay alive until 3:20am ET, the daily run's start + 20 min.
+          et_hour=$(TZ=America/New_York date +%H)
+          watch=""
+          case "$et_hour" in
+            22|23|00|01|02)
+              day=$(TZ=America/New_York date -d "+3 hours" +%F)
+              watch="--watch-until $(date -u -d "TZ=\"America/New_York\" $day 03:20" +%H:%M)" ;;
           esac
+          echo "watch=$watch" >> "$GITHUB_OUTPUT"
+          echo "steps: $list ${watch:-(single pass)}"
 
       - name: Run pipeline
-        if: steps.guard.outputs.go == 'true' && steps.steps.outputs.list != ''
+        if: steps.guard.outputs.go == 'true'
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           SHARPAPI_KEY: ${{ secrets.SHARPAPI_KEY }}
-        run: python3 tools/ledger/pipeline.py ${{ steps.steps.outputs.list }}
+        run: python3 tools/ledger/pipeline.py ${{ steps.steps.outputs.watch }} ${{ steps.steps.outputs.list }}

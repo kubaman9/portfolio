@@ -3,11 +3,13 @@
 .github/workflows/ledger-pipeline.yml so the daily Claude run spends its time on
 picks instead of arithmetic.
 
-  MONGODB_URI=... python3 tools/ledger/pipeline.py grade close audit summary
+  MONGODB_URI=... python3 tools/ledger/pipeline.py grade sync close audit enrich summary
+  MONGODB_URI=... python3 tools/ledger/pipeline.py --watch-until 07:20 grade sync ...
   MONGODB_URI=... python3 tools/ledger/pipeline.py prekick   (needs SHARPAPI_KEY)
 
 grade    OPEN picks whose games are final -> result, units, legs, final_score,
          written to picks AND to that day's dashboard_days entry.
+sync     grades the daily run wrote to picks itself -> that day's dashboard_days rows.
 close    ESPN closing line + CLV for graded single game-level picks with clv null.
 audit    re-grade picks graded in the last 7 days; disagreements go to grade_audit
          (the daily run must apply them) -- nothing graded is silently rewritten.
@@ -66,28 +68,35 @@ def write_back(db, pick, upd):
     if not day:
         return False
     changed = False
+
+    def put(row, k, v):
+        nonlocal changed
+        if row.get(k) != v:
+            row[k] = v
+            changed = True
+
     if pick.get("legs"):
         want = [w for leg in pick["legs"] for w in _words(re.sub(r"\(.*?\)", "", leg.get("selection", "")))]
         for s in day.get("slips") or []:
             hay = set(_words(re.sub(r"\(.*?\)", " ", (s.get("legs") or "") + " " + (s.get("shape") or ""))))
             if want and all(w in hay for w in want):
-                s["result"], s["units"] = upd["result"], upd["units"]
+                put(s, "result", upd["result"])
+                put(s, "units", upd["units"])
                 if "clv" in upd:
-                    s["clv"] = upd["clv"]
+                    put(s, "clv", upd["clv"])
                 for ld in s.get("legs_detail") or []:
                     for leg in upd.get("legs", []):
                         if set(_words(leg.get("selection"))) <= set(_words(ld.get("selection"))):
-                            ld["status"] = leg.get("status")
-                changed = True
+                            put(ld, "status", leg.get("status"))
                 break
     else:
         for p in day.get("picks") or []:
             if norm(p.get("bet")) == norm(pick.get("bet")):
-                p["result"], p["units"] = upd["result"], upd["units"]
+                put(p, "result", upd["result"])
+                put(p, "units", upd["units"])
                 for k in ("final_score", "clv", "close"):
                     if k in upd:
-                        p[k] = upd[k]
-                changed = True
+                        put(p, k, upd[k])
     if changed:
         db.dashboard_days.update_one({"_id": day["_id"]}, {"$set": {"picks": day.get("picks") or [], "slips": day.get("slips") or []}})
     return changed
@@ -127,6 +136,25 @@ def step_grade(db):
             g += 1
             log(f"  graded {p['date']} {p.get('bet')!r}: {upd['result']} {upd['units']:+}u")
     log(f"grade: {g} graded of {n} open past-dated picks")
+
+
+def step_sync(db):
+    """Mirror grades the daily run wrote to picks (graded_by agent_*) into that day's
+    dashboard_days rows, so a day's own page and the history never show a settled
+    ticket as OPEN. write_back only writes when a value actually differs."""
+    since = (NOW - dt.timedelta(days=21)).date().isoformat()
+    n = 0
+    for p in db.picks.find({"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "date": {"$gte": since}}):
+        upd = {"result": p["result"], "units": p.get("units")}
+        for k in ("final_score", "clv", "legs"):
+            if p.get(k) is not None:
+                upd[k] = p[k]
+        if p.get("closing_line"):
+            upd["close"] = p["closing_line"]
+        if write_back(db, p, upd):
+            n += 1
+            log(f"  synced {p['date']} {p.get('bet')!r}: {p['result']}")
+    log(f"sync: {n} dashboard rows updated from graded picks")
 
 
 def step_close(db):
@@ -489,16 +517,12 @@ def step_enrich(db):
     log(f"enrich: {filled} missing wrong_if filled from the pick documents")
 
 
-STEPS = {"enrich": step_enrich, "grade": step_grade, "close": step_close, "audit": step_audit, "summary": step_summary, "prekick": step_prekick}
+STEPS = {"enrich": step_enrich, "grade": step_grade, "sync": step_sync, "close": step_close, "audit": step_audit,
+         "summary": step_summary, "prekick": step_prekick}
+DEFAULT = ["grade", "sync", "close", "audit", "enrich", "summary"]
 
 
-def main():
-    steps = sys.argv[1:] or ["grade", "close", "audit", "enrich", "summary"]
-    bad = [s for s in steps if s not in STEPS]
-    if bad:
-        log(f"unknown step(s): {bad}; choose from {list(STEPS)}")
-        sys.exit(2)
-    db = connect()
+def run_steps(db, steps):
     for s in steps:
         t = time.time()
         try:
@@ -507,6 +531,59 @@ def main():
             log(f"{s}: FAILED {type(e).__name__}: {e}")
         log(f"  ({s} took {time.time() - t:.1f}s)")
     db.source_health.update_one({"_id": "ledger_pipeline"}, {"$set": {"last_run": ISO, "steps": steps}}, upsert=True)
+
+
+def tick():
+    """Fresh clock and fresh ESPN data for the next pass of a watch loop."""
+    global NOW, ISO
+    NOW = dt.datetime.now(dt.timezone.utc)
+    ISO = NOW.strftime("%Y-%m-%dT%H:%M:%SZ")
+    import espn
+    espn._cache.clear()
+
+
+def open_past(db):
+    return db.picks.count_documents({"result": "OPEN", "date": {"$gte": FIRST_LIVE_DAY, "$lt": NOW.date().isoformat()}})
+
+
+def main():
+    """--watch-until HH:MM (UTC) keeps re-running the steps every --every minutes until
+    then, or until no past-dated pick is left OPEN. GitHub drops most scheduled runs,
+    so whichever overnight run does start stays alive through the gap between the last
+    final whistle and the 3am ET daily run instead of grading once and leaving."""
+    args = sys.argv[1:]
+    until, every = None, 10
+    if "--watch-until" in args:
+        i = args.index("--watch-until")
+        hh, mm = (int(x) for x in args[i + 1].split(":"))
+        until = NOW.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        if until <= NOW:
+            until = None  # window already over: a single pass
+        del args[i:i + 2]
+    if "--every" in args:
+        i = args.index("--every")
+        every = float(args[i + 1])
+        del args[i:i + 2]
+    steps = args or DEFAULT
+    bad = [s for s in steps if s not in STEPS]
+    if bad:
+        log(f"unknown step(s): {bad}; choose from {list(STEPS)}")
+        sys.exit(2)
+    db = connect()
+    run_steps(db, steps)
+    while until:
+        left = open_past(db)
+        if not left:
+            log("watch: nothing past-dated is OPEN, done")
+            break
+        wait = min(every * 60, (until - dt.datetime.now(dt.timezone.utc)).total_seconds())
+        if wait <= 0:
+            log(f"watch: window over with {left} past-dated pick(s) still OPEN (left for the daily run)")
+            break
+        log(f"watch: {left} past-dated pick(s) still OPEN, next pass in {wait / 60:.0f} min")
+        time.sleep(wait)
+        tick()
+        run_steps(db, steps)
 
 
 if __name__ == "__main__":

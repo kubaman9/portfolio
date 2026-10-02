@@ -65,7 +65,16 @@ CASES += [p1, p2, p3, p4, p5,
           S("2026-09-27", "Soccer", "Norway @ Portugal (UEFA Nations League A)", "Pedro Neto Anytime Assist", "Player Prop", "WIN", dec=2.5),
           # NHL props, 4/12 Penguins @ Capitals (Brazeau 2 shots, both missed: 0 SOG; Skinner 24 saves)
           S("2026-04-12", "NHL", "Pittsburgh Penguins @ Washington Capitals", "Justin Brazeau Over 1.5 Shots on Goal", "Player Prop", "LOSS", dec=1.9),
-          S("2026-04-12", "NHL", "Pittsburgh Penguins @ Washington Capitals", "Stuart Skinner Over 25.5 Saves", "Player Prop", "LOSS", dec=1.9)]
+          S("2026-04-12", "NHL", "Pittsburgh Penguins @ Washington Capitals", "Stuart Skinner Over 25.5 Saves", "Player Prop", "LOSS", dec=1.9),
+          # trailing "..." in the matchup used to defeat the game match (10/1 run)
+          S("2026-10-01", "Soccer", "Greece @ Netherlands... (UEFA Nations League A, Greece host at Toumba, Thessaloniki)", "Greece Moneyline", "Moneyline", "LOSS", dec=3.35)]
+# MLB total bases (counted from the play-by-play): 10/1 Schwarber 2 singles = 2 TB, Acuna 1 single = 1 TB
+p6 = S("2026-10-01", "MLB", "Phillies @ Braves (same-game prop parlay, NL WC Gm3)", "Kyle Schwarber Over 1.5 Total Bases + Ronald Acuna Jr. Over 1.5 Total Bases", "Parlay", "LOSS", stake=0.25, dec=5.1429)
+p6["legs"] = [L("2026-10-01|PHI-ATL", "player_total_bases", "Kyle Schwarber Over 1.5", 2.17), L("2026-10-01|PHI-ATL", "player_total_bases", "Ronald Acuna Jr. Over 1.5", 2.37)]
+# 9/29 Olson 0-4 (0 TB), Albies double (2 TB)
+p7 = S("2026-09-29", "MLB", "Phillies @ Braves (same-game prop parlay)", "Matt Olson Over 1.5 Total Bases + Ozzie Albies Over 1.5 Total Bases", "Parlay", "LOSS", dec=5.3436)
+p7["legs"] = [L("2026-09-29|PHI-ATL", "player_total_bases", "Matt Olson Over 1.5", 2.19), L("2026-09-29|PHI-ATL", "player_total_bases", "Ozzie Albies Over 1.5", 2.44)]
+CASES += [p6, p7, S("2026-09-29", "MLB", "Phillies @ Braves", "Ozzie Albies Over 1.5 Total Bases", "Player Prop", "WIN", dec=2.44)]
 
 
 def main():

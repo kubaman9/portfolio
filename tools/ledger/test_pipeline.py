@@ -43,11 +43,22 @@ db.dashboard_days.insert_one({"_id": D, "picks": [
                "legs": "Arizona Cardinals +7.5 (-110) + Denver Broncos +2.5 (-115)",
                "legs_detail": [{"selection": "Arizona Cardinals +7.5", "status": "OPEN"}, {"selection": "Denver Broncos +2.5", "status": "OPEN"}]}]})
 
+# graded by the daily run itself (not the pipeline): sync must mirror it to its day's page
+D2 = "2026-09-29"
+db.picks.insert_one(dict(date=D2, sport="MLB", matchup="Phillies @ Braves (same-game prop parlay)",
+                         bet="Matt Olson Over 1.5 Total Bases + Ozzie Albies Over 1.5 Total Bases", bet_type="Parlay",
+                         slip_type="sgp", stake_units=0.5, price_decimal=5.3436, result="LOSS", units=-0.5, graded_by="agent_espn_boxscore",
+                         legs=[dict(game_key="2026-09-29|PHI-ATL", market="player_total_bases", selection="Matt Olson Over 1.5", price_decimal=2.19, status="LOSS"),
+                               dict(game_key="2026-09-29|PHI-ATL", market="player_total_bases", selection="Ozzie Albies Over 1.5", price_decimal=2.44, status="WIN")]))
+db.dashboard_days.insert_one({"_id": D2, "picks": [], "slips": [
+    {"shape": "Same-game prop parlay: Matt Olson Over 1.5 TB + Ozzie Albies Over 1.5 TB (Phillies-Braves)", "result": "OPEN", "units": None,
+     "legs": "Matt Olson Over 1.5 total bases (+119) + Ozzie Albies Over 1.5 total bases (+144)"}]})
+
 import datetime as _dt
 # a fresh pick missing its wrong_if/anchor fields, for the quality check (which looks back 3 days)
 db.picks.insert_one(dict(date=_dt.date.today().isoformat(), sport="NFL", matchup="A @ B", bet="A +3.5", bet_type="Spread",
                          stake_units=0.5, price_decimal=1.91, result="OPEN", confidence=53, ev_pct=1.0, book="fanduel"))
-for step in ("grade", "close", "audit", "summary"):
+for step in ("grade", "sync", "close", "audit", "summary"):
     pipeline.STEPS[step](db)
 
 fails = []
@@ -70,6 +81,9 @@ par = db.picks.find_one({"bet": "Parlay: Arizona Cardinals +7.5 + Denver Broncos
 check((par.get("clv_note") or "").startswith("pipeline: 1 of 2"), f"parlay CLV withheld when a leg's point moved ({par.get('clv_note')})")
 audit = list(db.grade_audit.find())
 check(len(audit) == 1 and audit[0]["espn_result"] == "LOSS", "audit caught the Sutton SGP misgrade")
+d2 = db.dashboard_days.find_one({"_id": D2})
+check(d2["slips"][0]["result"] == "LOSS" and d2["slips"][0]["units"] == -0.5, "sync mirrored a run-graded parlay onto its day's page")
+check(pipeline.write_back(db, db.picks.find_one({"date": D2}), {"result": "LOSS", "units": -0.5}) is False, "write_back reports no change when nothing differs")
 s = db.ledger_summary.find_one({"_id": "current"})
 check(s and s["adjustment_test"]["all"]["n"] == 3, f"summary adjustment test n=3 ({(s or {}).get('adjustment_test')})")
 q = s.get("quality") or {}

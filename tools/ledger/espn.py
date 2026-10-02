@@ -97,7 +97,7 @@ def split_matchup(matchup):
     m = re.sub(r"\(.*?\)", " ", str(matchup or ""))
     m = re.split(r"\s+SGP\b|:", m)[0] if "SGP" in m else m
     parts = re.split(r"\s+(?:@|vs\.?|v\.?|at)\s+", m.strip(), flags=re.I)
-    return [p.strip(" -") for p in parts] if len(parts) == 2 else None
+    return [p.strip(" -.,;") for p in parts] if len(parts) == 2 else None
 
 
 def _strength(side, comp):
@@ -230,3 +230,32 @@ def player_stat(summ, player, stat_key):
         total += hit
         found += 1
     return total if found == len(keys) else None
+
+
+HIT_BASES = {"single": 1, "double": 2, "triple": 3, "home-run": 4}
+
+
+def total_bases(summ, player):
+    """Total bases for a batter, counted from the play-by-play (the box score has no
+    per-player doubles/triples). Returns None unless the counted hits equal the box
+    score's H for that player, so a missing or odd play never produces a grade."""
+    pn = norm(player)
+    ids = {str((r.get("athlete") or {}).get("id")) for t in summ.get("rosters") or [] for r in t.get("roster") or []
+           if norm((r.get("athlete") or {}).get("displayName")) == pn}
+    if len(ids) != 1:
+        return None
+    pid = ids.pop()
+    tb = hits = 0
+    for p in summ.get("plays") or []:
+        if (p.get("type") or {}).get("type") != "play-result":
+            continue
+        bases = HIT_BASES.get((p.get("alternativeType") or {}).get("type"))
+        if not bases:
+            continue
+        if any(str((x.get("athlete") or {}).get("id")) == pid and x.get("type") == "batter" for x in p.get("participants") or []):
+            tb += bases
+            hits += 1
+    box_h = player_stat(summ, player, ("batting", "H"))
+    if box_h is None or box_h != hits:
+        return None
+    return float(tb)

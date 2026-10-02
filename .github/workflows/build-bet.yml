@@ -39,6 +39,7 @@ jobs:
   build:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 240
     steps:
       - name: Skip cleanly if the Mongo secret is not configured yet
         id: guard
@@ -72,33 +73,42 @@ jobs:
           git fetch origin gh-pages:gh-pages
           git worktree add ../ghpages gh-pages
 
-      - name: Build from Mongo (skips if unchanged)
-        id: build
+      - name: Build and publish (watches Mongo for a while right after the 3am run)
         if: steps.guard.outputs.go == 'true'
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           BET_PAGE_PASSPHRASE: ${{ secrets.BET_PAGE_PASSPHRASE }}
         run: |
           set -euo pipefail
-          out=$(python3 tools/bet/build_from_mongo.py --out /tmp/bet/index.html --existing ../ghpages/bet/index.html --template-file tools/bet/template.html)
-          echo "$out"
-          if [ "$(printf '%s\n' "$out" | tail -n1)" = "unchanged" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Publish to gh-pages and mirror into main
-        if: steps.build.outputs.changed == 'true'
-        run: |
-          set -euo pipefail
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          mkdir -p ../ghpages/bet
-          cp /tmp/bet/index.html ../ghpages/bet/index.html
-          (cd ../ghpages && git add bet/index.html && git commit -m "bet: dashboard rebuilt from Mongo ($stamp)" && git push origin gh-pages)
+          build_and_publish() {
+            out=$(python3 tools/bet/build_from_mongo.py --out /tmp/bet/index.html --existing ../ghpages/bet/index.html --template-file tools/bet/template.html)
+            echo "$out"
+            [ "$(printf '%s\n' "$out" | tail -n1)" = "unchanged" ] && return 0
+            stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            mkdir -p ../ghpages/bet
+            cp /tmp/bet/index.html ../ghpages/bet/index.html
+            (cd ../ghpages && git add bet/index.html && git commit -qm "bet: dashboard rebuilt from Mongo ($stamp)" && git pull -q --rebase origin gh-pages && git push -q origin gh-pages)
+            mkdir -p public/bet
+            cp /tmp/bet/index.html public/bet/index.html
+            git add public/bet/index.html
+            git commit -qm "bet: mirror dashboard into public/bet ($stamp)"
+            git pull --rebase -q origin main
+            git push -q origin main
+            echo "published $stamp"
+          }
 
-          mkdir -p public/bet
-          cp /tmp/bet/index.html public/bet/index.html
-          git add public/bet/index.html
-          git commit -m "bet: mirror dashboard into public/bet ($stamp)"
-          git pull --rebase -q origin main
-          git push origin main
+          build_and_publish
+          # GitHub drops most scheduled runs, so the page used to sit hours behind the
+          # 3am ET daily run. A build that starts between 3:00 and 5:59am ET keeps
+          # polling Mongo every 4 minutes until 6:30am ET and publishes each change.
+          case "$(TZ=America/New_York date +%H)" in
+            03|04|05)
+              end=$(date -u -d "TZ=\"America/New_York\" $(TZ=America/New_York date +%F) 06:30" +%s)
+              while [ "$(date +%s)" -lt "$end" ]; do
+                sleep 240
+                build_and_publish || echo "::warning::build attempt failed, retrying next pass"
+              done ;;
+          esac
