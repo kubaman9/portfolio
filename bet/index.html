@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta name="bet-build" content="2026-10-02T18:05:49Z"><meta name="bet-src" content="b545f7ce643be3cd">
+<head><meta name="bet-build" content="2026-10-02T18:17:57Z"><meta name="bet-src" content="e8d8267196011b7a">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -958,6 +958,25 @@ function modelVsMarket(){
 }
 
 /* ---------- CLV LAB ---------- */
+/* fair-close value from the ledger pipeline: each bet's price against the de-vigged
+   closing price. Raw CLV ignores the book's margin; this does not. */
+function fairCard(){
+  var L = LEDGER || {}, o = L.overall || {};
+  if (!o.n_xev) return "";
+  var segs = [];
+  [["Singles", L.singles], ["Parlays", L.parlays]].forEach(function(x){ if (x[1] && x[1].n_xev) segs.push({ k: x[0], x: x[1] }); });
+  ["by_sport", "by_bet_type"].forEach(function(g){ var t = L[g] || {}; Object.keys(t).forEach(function(k){ if (t[k].n_xev >= 3) segs.push({ k: k, x: t[k] }); }); });
+  return '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Value at the fair close</h2><span class="sub">the price you got vs the no-vig closing price</span></div>' +
+    '<div class="tiles4" style="margin-bottom:14px">' +
+    '<div class="tile"><div class="l">Expected ROI</div><div class="v ' + cls(o.exp_roi) + '">' + fP(o.exp_roi, 2) + '</div><div class="s">per unit staked, n=' + esc(o.n_xev) + "</div></div>" +
+    '<div class="tile"><div class="l">Expected units</div><div class="v ' + cls(o.exp_units) + '">' + fU(o.exp_units) + '</div><div class="s">what those bets were worth</div></div>' +
+    '<div class="tile"><div class="l">Actual units</div><div class="v ' + cls(o.units) + '">' + fU(o.units) + '</div><div class="s">all graded, incl. unpriced</div></div>' +
+    '<div class="tile"><div class="l">Raw mean CLV</div><div class="v ' + cls(o.mean_clv) + '">' + fP(o.mean_clv, 2) + '</div><div class="s">before removing the vig</div></div></div>' +
+    (segs.length ? '<div class="tscroll"><table class="tbl"><thead><tr><th>Segment</th><th class="r">Priced</th><th class="r">Exp. ROI</th><th class="r hide-m">Raw CLV</th><th class="r">Actual</th></tr></thead><tbody>' +
+      segs.map(function(r){ var x = r.x; return "<tr><td>" + esc(r.k.replace(/_/g, " ")) + '</td><td class="r mono">' + esc(x.n_xev) + '</td><td class="r mono ' + cls(x.exp_roi) + '">' + fP(x.exp_roi, 2) + '</td><td class="r mono hide-m ' + cls(x.mean_clv) + '">' + fP(x.mean_clv, 2) + '</td><td class="r mono ' + cls(x.units) + '">' + fU(x.units) + "</td></tr>"; }).join("") +
+      "</tbody></table></div>" : "") +
+    '<p class="sub" style="margin-top:10px">Positive expected ROI here is the clearest sign of a real edge: it settles in weeks, where win-loss needs hundreds of bets. Same-game parlays are left out (correlated legs).</p></div>';
+}
 function renderClv(){
   topbar("<b>CLV Lab</b>", '<span class="pill mono">beat the close, or it was luck</span>');
   var st = IX.stats || {}, clv = st.clv || [], c0 = clv[0] || {}, cn = num(LAST && LAST.clv_n), cd = num(LAST && LAST.clv_d);
@@ -969,6 +988,7 @@ function renderClv(){
     '<div class="tile"><div class="l">Mean CLV</div><div class="v ' + cls(c0.mean) + '">' + fP(c0.mean, 2) + '</div><div class="s">n=' + esc(c0.n) + "</div></div>" +
     '<div class="tile"><div class="l">Beat the close</div><div class="v">' + esc(c0.beat) + "/" + esc(c0.n) + '</div><div class="s">' + (c0.n ? Math.round(100 * c0.beat / c0.n) + "% of priced rows" : "") + "</div></div>" +
     '<div class="tile"><div class="l">Line CLV</div><div class="v ' + cls(c0.pts_mean) + '">' + (c0.pts_mean != null ? (c0.pts_mean > 0 ? "+" : "") + c0.pts_mean + " pts" : "—") + '</div><div class="s">' + (c0.pts_n != null ? c0.pts_n + " rows where the point moved" : "") + "</div></div></div>" +
+    fairCard() +
     '<div class="card" style="margin-top:16px"><div class="card-h"><h2>Coverage trend</h2><span class="sub">share of graded rows with a real closing price</span></div>' + clvTrend(200) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' +
     '<div class="card"><div class="card-h"><h2>By segment</h2></div><div class="tscroll"><table class="tbl"><thead><tr><th>Segment</th><th class="r">Beat</th><th class="r">Mean</th><th class="r hide-m">Line CLV</th></tr></thead><tbody>' + clv.map(function(x){ return "<tr><td>" + esc(x.k) + '</td><td class="r mono">' + esc(x.beat) + "/" + esc(x.n) + '</td><td class="r mono ' + cls(x.mean) + '">' + fP(x.mean, 2) + '</td><td class="r mono hide-m">' + (x.pts_mean != null ? (x.pts_mean > 0 ? "+" : "") + x.pts_mean + " pts (n=" + x.pts_n + ")" : "—") + "</td></tr>"; }).join("") + "</tbody></table></div>" + leak.map(function(l){ return '<div class="sec-t">' + esc(l.seg) + '</div><div class="prose"><p>' + md(l.read) + "</p></div>"; }).join("") + "</div>" +
