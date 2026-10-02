@@ -204,7 +204,10 @@ def event_for_key(sport, game_key, hint):
     date, codes = game_key.split("|", 1)
     codes = {norm(c) for c in codes.split("-")}
     import datetime as _dt
-    base = _dt.date.fromisoformat(date)
+    try:
+        base = _dt.date.fromisoformat(date)
+    except ValueError:  # e.g. "legacy|..." keys on early-September rows
+        return None
     for delta in (0, 1, -1):
         day = (base + _dt.timedelta(days=delta)).isoformat()
         for sk, lg, extra in LEAGUES.get(sport, []):

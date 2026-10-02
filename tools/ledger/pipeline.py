@@ -228,54 +228,64 @@ def step_close(db):
     q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "legs.0": {"$exists": True}, "xev_tried": {"$ne": True},
          "date": {"$gte": since}}
     for p in db.picks.find(q):
-        mult, fair_all, ok, notes = 1.0, 1.0, 0, []
-        for leg in p["legs"]:
-            mk = norm(leg.get("market") or "")
-            dec = leg.get("price_decimal") or (leg.get("price_american") and price_decimal(leg))
-            spec = parse(leg.get("selection"), leg.get("market"), None, p.get("sport"))
-            u = None
-            if spec and spec["kind"] == "prop":
-                c = prekick_close(db, leg.get("game_key"), leg.get("selection"), spec, dec)
-                u = {"clv": c["clv"], "fair": c.get("fair")} if c and "clv" in c else None
-                if not u:
-                    notes.append("prop leg without a pre-kick price")
-            elif any(w in mk for w in ("spread", "total", "moneyline", "run line", "run_line")):
-                found = event_for_key(p.get("sport"), leg.get("game_key"), leg.get("selection"))
-                if found and dec:
-                    bt = "Moneyline" if "moneyline" in mk else ("Total Under" if "under" in norm(leg.get("selection")) else "Total Over") if "total" in mk else "Spread"
-                    pseudo = {"bet": leg.get("selection"), "bet_type": bt, "sport": p.get("sport"), "price_decimal": dec}
-                    try:
-                        c = closing_for(pseudo, found[0], found[1], found[2]["id"], competitors(found[2]))
-                    except Exception:
-                        c = None
-                    u = {"clv": c["clv"], "fair": c.get("close_fair_prob")} if c and "clv" in c else None
-                    if not u:
-                        notes.append("point moved or no close")
-                else:
-                    notes.append("leg event not found")
-            else:
-                notes.append("other leg")
-            if u:
-                mult *= 1 + u["clv"] / 100
-                fair_all = fair_all * u["fair"] if (u.get("fair") and fair_all is not None) else None
-                ok += 1
-        n = len(p["legs"])
-        upd = {"xev_tried": True, "updated_at": ISO}
-        if ok == n:
-            if p.get("clv") is None:
-                upd.update({"clv": round((mult - 1) * 100, 2), "clv_source": "espn_core_pipeline (product of legs)"})
-            if fair_all is not None and p.get("slip_type") != "sgp" and price_decimal(p):
-                upd.update({"close_fair_prob": round(fair_all, 4), "xev": xev_pct(price_decimal(p), fair_all)})
-            if "clv" in upd:
-                write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"]})
-            log(f"  parlay close {p['date']} {p.get('bet')!r}: clv={upd.get('clv', p.get('clv'))} xev={upd.get('xev')}")
-        else:
-            upd["clv_note"] = f"pipeline: {ok} of {n} legs have a comparable close ({'; '.join(sorted(set(notes)))})"
-            if any("pre-kick" in x for x in notes) and p.get("date", "") >= (NOW - dt.timedelta(days=2)).date().isoformat():
-                upd.pop("xev_tried")  # a pre-kick price may still land; retry for two days
-        db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
-        done += 1
+        try:
+            done += close_parlay(db, p)
+        except Exception as e:  # one odd row must not stop the rest
+            log(f"  parlay close error on {p.get('bet')!r}: {type(e).__name__}: {e}")
+            db.picks.update_one({"_id": p["_id"]}, {"$set": {"xev_tried": True}})
     log(f"close: {done} picks priced against the close")
+
+
+def close_parlay(db, p):
+    """One parlay against the close; returns 1 when it was handled."""
+    since2 = (NOW - dt.timedelta(days=2)).date().isoformat()
+    mult, fair_all, ok, notes = 1.0, 1.0, 0, []
+    for leg in p["legs"]:
+        mk = norm(leg.get("market") or "")
+        dec = leg.get("price_decimal") or (leg.get("price_american") and price_decimal(leg))
+        spec = parse(leg.get("selection"), leg.get("market"), None, p.get("sport"))
+        u = None
+        if spec and spec["kind"] == "prop":
+            c = prekick_close(db, leg.get("game_key"), leg.get("selection"), spec, dec)
+            u = {"clv": c["clv"], "fair": c.get("fair")} if c and "clv" in c else None
+            if not u:
+                notes.append("prop leg without a pre-kick price")
+        elif any(w in mk for w in ("spread", "total", "moneyline", "run line", "run_line")):
+            found = event_for_key(p.get("sport"), leg.get("game_key"), leg.get("selection"))
+            if found and dec:
+                bt = "Moneyline" if "moneyline" in mk else ("Total Under" if "under" in norm(leg.get("selection")) else "Total Over") if "total" in mk else "Spread"
+                pseudo = {"bet": leg.get("selection"), "bet_type": bt, "sport": p.get("sport"), "price_decimal": dec}
+                try:
+                    c = closing_for(pseudo, found[0], found[1], found[2]["id"], competitors(found[2]))
+                except Exception:
+                    c = None
+                u = {"clv": c["clv"], "fair": c.get("close_fair_prob")} if c and "clv" in c else None
+                if not u:
+                    notes.append("point moved or no close")
+            else:
+                notes.append("leg event not found")
+        else:
+            notes.append("other leg")
+        if u:
+            mult *= 1 + u["clv"] / 100
+            fair_all = fair_all * u["fair"] if (u.get("fair") and fair_all is not None) else None
+            ok += 1
+    n = len(p["legs"])
+    upd = {"xev_tried": True, "updated_at": ISO}
+    if ok == n:
+        if p.get("clv") is None:
+            upd.update({"clv": round((mult - 1) * 100, 2), "clv_source": "espn_core_pipeline (product of legs)"})
+        if fair_all is not None and p.get("slip_type") != "sgp" and price_decimal(p):
+            upd.update({"close_fair_prob": round(fair_all, 4), "xev": xev_pct(price_decimal(p), fair_all)})
+        if "clv" in upd:
+            write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"]})
+        log(f"  parlay close {p['date']} {p.get('bet')!r}: clv={upd.get('clv', p.get('clv'))} xev={upd.get('xev')}")
+    else:
+        upd["clv_note"] = f"pipeline: {ok} of {n} legs have a comparable close ({'; '.join(sorted(set(notes)))})"
+        if any("pre-kick" in x for x in notes) and p.get("date", "") >= since2:
+            upd.pop("xev_tried")  # a pre-kick price may still land; retry for two days
+    db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
+    return 1
 
 
 def step_audit(db):
