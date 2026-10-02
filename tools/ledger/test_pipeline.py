@@ -54,6 +54,14 @@ db.dashboard_days.insert_one({"_id": D2, "picks": [], "slips": [
     {"shape": "Same-game prop parlay: Matt Olson Over 1.5 TB + Ozzie Albies Over 1.5 TB (Phillies-Braves)", "result": "OPEN", "units": None,
      "legs": "Matt Olson Over 1.5 total bases (+119) + Ozzie Albies Over 1.5 total bases (+144)"}]})
 
+# a graded prop with a saved pre-kick price (both sides): CLV + fair EV from it
+db.picks.insert_one(dict(date=D2, sport="MLB", matchup="Phillies @ Braves", bet="Ozzie Albies Over 1.5 Total Bases",
+                         bet_type="Player Prop", stake_units=0.5, price_decimal=2.44, result="WIN", units=0.72, clv=None,
+                         game_key="2026-09-29|PHI-ATL"))
+db.odds_snapshots.insert_one(dict(kind="pre_kick", game_key="2026-09-29|PHI-ATL", selection="Ozzie Albies Over 1.5 Total Bases",
+                                  point=1.5, book="draftkings", price_american=120, price_decimal=2.2, other_price_decimal=1.65,
+                                  captured_at="2026-09-29T22:00:00Z"))
+
 import datetime as _dt
 # a fresh pick missing its wrong_if/anchor fields, for the quality check (which looks back 3 days)
 db.picks.insert_one(dict(date=_dt.date.today().isoformat(), sport="NFL", matchup="A @ B", bet="A +3.5", bet_type="Spread",
@@ -81,6 +89,19 @@ par = db.picks.find_one({"bet": "Parlay: Arizona Cardinals +7.5 + Denver Broncos
 check((par.get("clv_note") or "").startswith("pipeline: 1 of 2"), f"parlay CLV withheld when a leg's point moved ({par.get('clv_note')})")
 audit = list(db.grade_audit.find())
 check(len(audit) == 1 and audit[0]["espn_result"] == "LOSS", "audit caught the Sutton SGP misgrade")
+bg = db.picks.find_one({"bet": "Cincinnati Bengals -3.5"})
+check(isinstance(bg.get("xev"), float) and 0 < bg.get("close_fair_prob", 0) < 1, f"Bengals got a fair-close EV (xev={bg.get('xev')}, fair={bg.get('close_fair_prob')})")
+al = db.picks.find_one({"bet": "Ozzie Albies Over 1.5 Total Bases"})
+check(al.get("clv") == round((2.44 / 2.2 - 1) * 100, 2) and al.get("xev") == round((2.44 * (1 / 2.2) / (1 / 2.2 + 1 / 1.65) - 1) * 100, 2),
+      f"prop CLV + xev from the pre-kick price (clv={al.get('clv')}, xev={al.get('xev')})")
+rows = [dict(player_name="Ozzie Albies", market_type="player_total_bases", line=1.5, selection="Over", selection_type="over", sportsbook="fanduel", odds_decimal=2.3, odds_american=130, market_segment="full_game"),
+        dict(player_name="Ozzie Albies", market_type="player_total_bases", line=1.5, selection="Over", selection_type="over", sportsbook="draftkings", odds_decimal=2.2, odds_american=120),
+        dict(player_name="Ozzie Albies", market_type="player_total_bases", line=1.5, selection="Under", selection_type="under", sportsbook="draftkings", odds_decimal=1.65, odds_american=-154),
+        dict(player_name="Ozzie Albies", market_type="player_hits", line=1.5, selection="Over", selection_type="over", sportsbook="draftkings", odds_decimal=3.0),
+        dict(player_name="Ozzie Albies", market_type="player_total_bases", line=2.5, selection="Over", selection_type="over", sportsbook="draftkings", odds_decimal=4.0)]
+spec = pipeline.parse("Ozzie Albies Over 1.5", "player_total_bases", None, "MLB")
+got = pipeline.pick_prop_rows(rows, spec, pipeline.prop_market_key(spec), None)
+check(got and got[0] == "draftkings" and got[1]["odds_decimal"] == 2.2 and got[2]["odds_decimal"] == 1.65, f"prekick picks the DraftKings Over/Under pair at the same line ({got and got[0]})")
 d2 = db.dashboard_days.find_one({"_id": D2})
 check(d2["slips"][0]["result"] == "LOSS" and d2["slips"][0]["units"] == -0.5, "sync mirrored a run-graded parlay onto its day's page")
 check(pipeline.write_back(db, db.picks.find_one({"date": D2}), {"result": "LOSS", "units": -0.5}) is False, "write_back reports no change when nothing differs")

@@ -329,6 +329,22 @@ def grade_pick(p):
             "_espn": (sk, lg, ev["id"])}
 
 
+def fair_prob(mine, others):
+    """No-vig probability of an outcome from the closing decimals of every outcome
+    (multiplicative de-vig). None unless every price is there."""
+    prices = [mine] + list(others)
+    if not others or any(not x or float(x) <= 1 for x in prices):
+        return None
+    inv = [1 / float(x) for x in prices]
+    return inv[0] / sum(inv)
+
+
+def xev_pct(dec_pick, fair):
+    """Expected return of the bet at the fair closing price, in percent. This is the
+    best single-bet estimate of whether a pick was +EV, long before W/L settles it."""
+    return round((float(dec_pick) * fair - 1) * 100, 2)
+
+
 def _american_str(v):
     try:
         return int(float(str(v).replace("+", "")))
@@ -346,10 +362,12 @@ def closing_for(p, sk, lg, ev_id, comps_by_index):
         return None
     dec_pick = price_decimal(p)
     close_dec, close_point, label = None, None, None
+    others = []  # closing decimals of the other outcome(s), for the no-vig fair price
     if spec["kind"] == "total":
         cl = (it.get("close") or {})
         side = cl.get(spec["side"]) or {}
         close_dec = side.get("decimal")
+        others = [(cl.get("under" if spec["side"] == "over" else "over") or {}).get("decimal")]
         tot = (cl.get("total") or {}).get("american")
         close_point = float(tot) if tot not in (None, "") else None
         label = f"{spec['side'].title()} {close_point} ({side.get('american')}, {it.get('provider', {}).get('name')} via ESPN Core)"
@@ -361,11 +379,17 @@ def closing_for(p, sk, lg, ev_id, comps_by_index):
         if i is None:
             return None
         side_key = "homeTeamOdds" if comps_by_index[i].get("homeAway") == "home" else "awayTeamOdds"
+        other_key = "awayTeamOdds" if side_key == "homeTeamOdds" else "homeTeamOdds"
         cl = (it.get(side_key) or {}).get("close") or {}
+        ocl = (it.get(other_key) or {}).get("close") or {}
         abbr = comps_by_index[i]["team"].get("abbreviation")
         if spec["kind"] == "ml":
             ml = cl.get("moneyLine") or {}
             close_dec = ml.get("decimal")
+            others = [(ocl.get("moneyLine") or {}).get("decimal")]
+            if p.get("sport") == "Soccer":  # three-way market: the draw is the third outcome
+                draw = (it.get("drawOdds") or {}).get("moneyLine")
+                others.append(dec_from_american(draw) if draw not in (None, "") else None)
             label = f"{abbr} ML {ml.get('american')} ({it.get('provider', {}).get('name')} via ESPN Core)"
             same_point, move = True, None
         else:
@@ -373,6 +397,7 @@ def closing_for(p, sk, lg, ev_id, comps_by_index):
             sp = cl.get("spread") or {}
             close_point = float(ps) if ps not in (None, "") else None
             close_dec = sp.get("decimal")
+            others = [(ocl.get("spread") or {}).get("decimal")]
             label = f"{abbr} {ps} ({sp.get('american')}, {it.get('provider', {}).get('name')} via ESPN Core)"
             same_point = close_point == spec["point"]
             move = None if close_point is None else spec["point"] - close_point  # + = we got more points than the close
@@ -381,6 +406,10 @@ def closing_for(p, sk, lg, ev_id, comps_by_index):
     upd = {"closing_line": label, "clv_source": "espn_core_pipeline", "closing_point": close_point}
     if same_point:
         upd["clv"] = round((dec_pick / float(close_dec) - 1) * 100, 2)
+        fair = fair_prob(close_dec, others)
+        if fair is not None:
+            upd["close_fair_prob"] = round(fair, 4)
+            upd["xev"] = round((dec_pick * fair - 1) * 100, 2)
     if move is not None:
         upd["point_move"] = round(move, 2)
     return upd

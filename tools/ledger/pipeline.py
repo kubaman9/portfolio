@@ -27,11 +27,12 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from espn import norm, find_event, competitors, event_state  # noqa: E402
-from grade import grade_pick, closing_for, parse, event_for_key  # noqa: E402
+from grade import grade_pick, closing_for, parse, event_for_key, fair_prob, xev_pct, price_decimal  # noqa: E402
 
 NOW = dt.datetime.now(dt.timezone.utc)
 ISO = NOW.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -157,72 +158,124 @@ def step_sync(db):
     log(f"sync: {n} dashboard rows updated from graded picks")
 
 
+def prekick_close(db, game_key, selection, spec, dec_pick):
+    """CLV and fair-price EV for a player prop from the last pre-kick price (props have
+    no ESPN close). Only comparable when the line is unchanged."""
+    snap = db.odds_snapshots.find_one({"kind": "pre_kick", "game_key": game_key, "selection": selection},
+                                      sort=[("captured_at", -1)])
+    if not snap or not snap.get("price_decimal") or not dec_pick:
+        return None
+    if snap.get("point") is not None and float(snap["point"]) != spec["line"]:
+        return {"note": f"prop line moved to {snap['point']}"}
+    out = {"clv": round((float(dec_pick) / float(snap["price_decimal"]) - 1) * 100, 2),
+           "close": f"{selection} {snap.get('price_american')} ({snap.get('book')} pre-kick, SharpAPI)"}
+    fair = fair_prob(snap["price_decimal"], [snap.get("other_price_decimal")])
+    if fair is not None:
+        out["fair"] = round(fair, 4)
+        out["xev"] = xev_pct(dec_pick, fair)
+    return out
+
+
 def step_close(db):
+    """Closing line, CLV and fair-price EV (xev) for graded picks. Each pick is tried
+    once (xev_tried); picks that already carry a run-written CLV keep it and only gain
+    the fair-price fields."""
     done = 0
-    q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "clv": None, "legs": {"$exists": False},
-         "clv_source": {"$ne": "espn_core_pipeline"},  # close already recorded (point moved -> clv stays null)
-         "date": {"$gte": (NOW - dt.timedelta(days=10)).date().isoformat()}}
+    since = (NOW - dt.timedelta(days=30)).date().isoformat()
+    q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "legs": {"$exists": False}, "xev_tried": {"$ne": True},
+         "date": {"$gte": since}}
     for p in db.picks.find(q):
         spec = parse(p.get("bet"), None, p.get("bet_type"), p.get("sport"))
-        if not spec or spec["kind"] == "prop":
-            continue
-        found = find_event(p.get("sport"), p.get("date"), p.get("matchup"))
-        if not found:
-            continue
-        sk, lg, ev = found
-        try:
-            upd = closing_for(p, sk, lg, ev["id"], competitors(ev))
-        except Exception as e:
-            log(f"  close error on {p.get('bet')!r}: {type(e).__name__}")
-            continue
-        if not upd:
-            continue
-        upd["updated_at"] = ISO
+        upd = None
+        if spec and spec["kind"] == "prop":
+            c = prekick_close(db, p.get("game_key"), p.get("bet"), spec, price_decimal(p))
+            if c and "clv" in c:
+                upd = {"closing_line": c["close"], "clv_source": "sharpapi_prekick_pipeline"}
+                if p.get("clv") is None:
+                    upd["clv"] = c["clv"]
+                if "xev" in c:
+                    upd.update({"close_fair_prob": c["fair"], "xev": c["xev"]})
+            elif c is None and p.get("date", "") >= (NOW - dt.timedelta(days=2)).date().isoformat():
+                continue  # a pre-kick price may still be saved for a late game: try again later
+        elif spec:
+            found = find_event(p.get("sport"), p.get("date"), p.get("matchup")) or \
+                event_for_key(p.get("sport"), p.get("game_key"), p.get("bet"))
+            if found:
+                sk, lg, ev = found
+                try:
+                    upd = closing_for(p, sk, lg, ev["id"], competitors(ev))
+                except Exception as e:
+                    log(f"  close error on {p.get('bet')!r}: {type(e).__name__}")
+                    continue
+                if upd and p.get("clv") is not None:  # keep the run's own CLV and close
+                    for k in ("clv", "closing_line", "clv_source", "closing_point"):
+                        upd.pop(k, None)
+        upd = dict(upd or {}, xev_tried=True, updated_at=ISO)
         db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
-        db.odds_snapshots.insert_one({"captured_at": ISO, "kind": "close", "game_key": p.get("game_key"),
-                                      "market": spec["kind"], "selection": p.get("bet"),
-                                      "point": upd.get("closing_point"), "book": "draftkings",
-                                      "source": "espn_core_pipeline", "note": upd.get("closing_line")})
+        if "closing_line" in upd and spec and spec["kind"] != "prop":
+            db.odds_snapshots.insert_one({"captured_at": ISO, "kind": "close", "game_key": p.get("game_key"),
+                                          "market": spec["kind"], "selection": p.get("bet"),
+                                          "point": upd.get("closing_point"), "book": "draftkings",
+                                          "source": "espn_core_pipeline", "note": upd.get("closing_line")})
         if "clv" in upd:
             write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"], "close": upd.get("closing_line")})
-        done += 1
-        log(f"  close {p['date']} {p.get('bet')!r}: {upd.get('closing_line')} clv={upd.get('clv')}")
-    # Parlays: CLV = product of leg multipliers, only when EVERY leg has a comparable close
-    q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "clv": None, "legs.0": {"$exists": True},
-         "date": {"$gte": (NOW - dt.timedelta(days=10)).date().isoformat()}}
+        if "clv" in upd or "xev" in upd:
+            done += 1
+            log(f"  close {p['date']} {p.get('bet')!r}: clv={upd.get('clv', p.get('clv'))} xev={upd.get('xev')}")
+    # Parlays: CLV = product of leg multipliers, only when EVERY leg has a comparable close.
+    # xev = parlay price x product of the legs' fair probabilities - 1 (independent legs, so
+    # not computed for same-game parlays, whose legs are correlated by design).
+    q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "legs.0": {"$exists": True}, "xev_tried": {"$ne": True},
+         "date": {"$gte": since}}
     for p in db.picks.find(q):
-        if (p.get("clv_note") or "").startswith("pipeline:"):
-            continue  # already tried; closes do not appear later
-        mult, ok, notes = 1.0, 0, []
+        mult, fair_all, ok, notes = 1.0, 1.0, 0, []
         for leg in p["legs"]:
             mk = norm(leg.get("market") or "")
-            if not any(w in mk for w in ("spread", "total", "moneyline", "run line", "run_line")):
-                notes.append("prop/other leg")
-                continue
-            found = event_for_key(p.get("sport"), leg.get("game_key"), leg.get("selection"))
-            dec = leg.get("price_decimal")
-            if not found or not dec:
-                notes.append("leg event not found")
-                continue
-            bt = "Moneyline" if "moneyline" in mk else ("Total Under" if "under" in norm(leg.get("selection")) else "Total Over") if "total" in mk else "Spread"
-            pseudo = {"bet": leg.get("selection"), "bet_type": bt, "sport": p.get("sport"), "price_decimal": dec}
-            try:
-                u = closing_for(pseudo, found[0], found[1], found[2]["id"], competitors(found[2]))
-            except Exception:
-                u = None
-            if u and "clv" in u:
-                mult *= 1 + u["clv"] / 100
-                ok += 1
+            dec = leg.get("price_decimal") or (leg.get("price_american") and price_decimal(leg))
+            spec = parse(leg.get("selection"), leg.get("market"), None, p.get("sport"))
+            u = None
+            if spec and spec["kind"] == "prop":
+                c = prekick_close(db, leg.get("game_key"), leg.get("selection"), spec, dec)
+                u = {"clv": c["clv"], "fair": c.get("fair")} if c and "clv" in c else None
+                if not u:
+                    notes.append("prop leg without a pre-kick price")
+            elif any(w in mk for w in ("spread", "total", "moneyline", "run line", "run_line")):
+                found = event_for_key(p.get("sport"), leg.get("game_key"), leg.get("selection"))
+                if found and dec:
+                    bt = "Moneyline" if "moneyline" in mk else ("Total Under" if "under" in norm(leg.get("selection")) else "Total Over") if "total" in mk else "Spread"
+                    pseudo = {"bet": leg.get("selection"), "bet_type": bt, "sport": p.get("sport"), "price_decimal": dec}
+                    try:
+                        c = closing_for(pseudo, found[0], found[1], found[2]["id"], competitors(found[2]))
+                    except Exception:
+                        c = None
+                    u = {"clv": c["clv"], "fair": c.get("close_fair_prob")} if c and "clv" in c else None
+                    if not u:
+                        notes.append("point moved or no close")
+                else:
+                    notes.append("leg event not found")
             else:
-                notes.append("point moved or no close")
+                notes.append("other leg")
+            if u:
+                mult *= 1 + u["clv"] / 100
+                fair_all = fair_all * u["fair"] if (u.get("fair") and fair_all is not None) else None
+                ok += 1
         n = len(p["legs"])
+        upd = {"xev_tried": True, "updated_at": ISO}
         if ok == n:
-            upd = {"clv": round((mult - 1) * 100, 2), "clv_source": "espn_core_pipeline (product of legs)", "updated_at": ISO}
-            write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"]})
-            log(f"  parlay clv {p['date']} {p.get('bet')!r}: {upd['clv']}%")
+            if p.get("clv") is None:
+                upd.update({"clv": round((mult - 1) * 100, 2), "clv_source": "espn_core_pipeline (product of legs)"})
+            if fair_all is not None and p.get("slip_type") != "sgp" and price_decimal(p):
+                upd.update({"close_fair_prob": round(fair_all, 4), "xev": xev_pct(price_decimal(p), fair_all)})
+            if "clv" in upd:
+                write_back(db, p, {"result": p["result"], "units": p["units"], "clv": upd["clv"]})
+            log(f"  parlay close {p['date']} {p.get('bet')!r}: clv={upd.get('clv', p.get('clv'))} xev={upd.get('xev')}")
         else:
-            upd = {"clv_note": f"pipeline: {ok} of {n} legs have a comparable close ({'; '.join(sorted(set(notes)))})", "updated_at": ISO}
+            upd["clv_note"] = f"pipeline: {ok} of {n} legs have a comparable close ({'; '.join(sorted(set(notes)))})"
+            if any("pre-kick" in x for x in notes) and p.get("date", "") >= (NOW - dt.timedelta(days=2)).date().isoformat():
+                upd.pop("xev_tried")  # a pre-kick price may still land; retry for two days
         db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
+        done += 1
+    log(f"close: {done} picks priced against the close")
 
 
 def step_audit(db):
@@ -277,10 +330,15 @@ def flags_for(groups):
                 out.append({"flag": "tighten", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
                             "units": x["units"], "hit_ci": [x["wilson_lo"], x["wilson_hi"]], "breakeven": x["be"],
                             "why": f"best case {x['wilson_hi']}% < break-even {x['be']}%"})
+            elif x.get("n_xev", 0) >= 12 and x.get("exp_roi") is not None and x["exp_roi"] <= -3.0:
+                out.append({"flag": "watch", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
+                            "units": x["units"], "exp_roi": x["exp_roi"],
+                            "why": f"worth {x['exp_roi']}% per unit at the fair close on {x['n_xev']} priced rows (vig is eating it)"})
             elif x.get("n_clv", 0) >= 10 and x.get("mean_clv") is not None and x["mean_clv"] <= -1.0:
                 out.append({"flag": "watch", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
                             "units": x["units"], "mean_clv": x["mean_clv"], "why": f"mean CLV {x['mean_clv']}% on {x['n_clv']} priced rows"})
-            elif x.get("n_clv", 0) >= 15 and (x.get("mean_clv") or 0) >= 1.0 and x["beat_close"] / x["n_clv"] >= 0.55:
+            elif x.get("n_clv", 0) >= 15 and (x.get("mean_clv") or 0) >= 1.0 and x["beat_close"] / x["n_clv"] >= 0.55 \
+                    and (x.get("exp_roi") is None or x["exp_roi"] > 0):
                 out.append({"flag": "strength", "segment": f"{gname}:{k}", "n": n, "record": f"{x['W']}-{x['L']}",
                             "units": x["units"], "mean_clv": x["mean_clv"], "why": "beats the close consistently"})
     order = {"tighten": 0, "watch": 1, "strength": 2}
@@ -330,7 +388,7 @@ def step_summary(db):
     rows = list(db.picks.find({"date": {"$gte": FIRST_LIVE_DAY}}, {
         "date": 1, "sport": 1, "bet_type": 1, "result": 1, "units": 1, "stake_units": 1, "clv": 1,
         "confidence": 1, "anchor_prob": 1, "model_prob": 1, "legs": 1, "slip_type": 1, "tags": 1,
-        "anchor_quality": 1, "thesis_quality": 1, "ev_pct": 1, "price_decimal": 1}))
+        "anchor_quality": 1, "thesis_quality": 1, "ev_pct": 1, "price_decimal": 1, "xev": 1}))
     graded = [r for r in rows if r.get("result") in ("WIN", "LOSS", "PUSH")]
 
     def seg(items):
@@ -342,11 +400,17 @@ def step_summary(db):
         clvs = [r["clv"] for r in items if isinstance(r.get("clv"), (int, float))]
         decs = [r["price_decimal"] for r in items if isinstance(r.get("price_decimal"), (int, float)) and r["price_decimal"] > 1]
         lo, hi = wilson(W, W + L)
+        # fair-price EV at the close: what the bets were worth, independent of how they landed
+        xr = [r for r in items if isinstance(r.get("xev"), (int, float))]
+        xst = sum(r.get("stake_units") or 0.5 for r in xr)
         return {"W": W, "L": L, "P": P, "units": u, "hit": round(100 * W / (W + L), 1) if W + L else None,
                 "wilson_lo": lo, "wilson_hi": hi, "be": round(100 * sum(1 / d for d in decs) / len(decs), 1) if decs else None,
                 "roi": round(100 * u / st, 1) if st else None, "n_clv": len(clvs),
                 "mean_clv": round(sum(clvs) / len(clvs), 2) if clvs else None,
-                "beat_close": sum(c > 0 for c in clvs)}
+                "beat_close": sum(c > 0 for c in clvs),
+                "n_xev": len(xr), "mean_xev": round(sum(r["xev"] for r in xr) / len(xr), 2) if xr else None,
+                "exp_units": round(sum((r.get("stake_units") or 0.5) * r["xev"] / 100 for r in xr), 3) if xr else None,
+                "exp_roi": round(100 * sum((r.get("stake_units") or 0.5) * r["xev"] / 100 for r in xr) / xst, 2) if xst else None}
 
     def by(key):
         out = {}
@@ -386,7 +450,8 @@ def step_summary(db):
                         "stated_mean": round(sum(r["confidence"] for r in stated) / len(stated), 1) if stated else None,
                         "hit_rate": round(100 * sum(r["result"] == "WIN" for r in stated) / len(stated), 1) if stated else None},
         "adjustment_test": {"all": brier(bt), "by_sport": {k: brier(v) for k, v in by_sport_bt.items()}},
-        "clv_coverage": {"graded": len(graded), "with_clv": sum(isinstance(r.get("clv"), (int, float)) for r in graded)},
+        "clv_coverage": {"graded": len(graded), "with_clv": sum(isinstance(r.get("clv"), (int, float)) for r in graded),
+                         "with_xev": sum(isinstance(r.get("xev"), (int, float)) for r in graded)},
         "open": {"tickets": sum(r.get("result") == "OPEN" for r in rows),
                  "units_at_risk": round(sum(r.get("stake_units") or 0 for r in rows if r.get("result") == "OPEN"), 2)},
         "open_audits": db.grade_audit.count_documents({"status": "open"}),
@@ -405,7 +470,8 @@ def step_summary(db):
     db.ledger_summary.replace_one({"_id": "current"}, doc, upsert=True)
     db.ledger_summary.replace_one({"_id": NOW.date().isoformat()}, dict(doc, _id=NOW.date().isoformat()), upsert=True)
     o = doc["overall"]
-    log(f"summary: {o['W']}-{o['L']}-{o['P']} {o['units']:+}u, adjustment test {doc['adjustment_test']['all']}")
+    log(f"summary: {o['W']}-{o['L']}-{o['P']} {o['units']:+}u, fair-close EV {o.get('exp_roi')}% on {o.get('n_xev')} priced, "
+        f"adjustment test {doc['adjustment_test']['all']}")
 
 
 # ---------------------------------------------------------------- SharpAPI pre-kick (props)
@@ -416,11 +482,64 @@ def sharp_get(path, key):
         remaining = r.headers.get("x-ratelimit-remaining")
         body = json.loads(r.read().decode("utf-8"))
     if remaining is not None and int(remaining) <= 1:
-        time.sleep(6)
+        time.sleep(6)  # free tier: 12 requests a minute
     return body
 
 
+# our parsed stat -> substring of SharpAPI's market_type (player_total_bases, player_strikeouts, ...)
+PROP_MARKET = {("batting", "TB"): "total_bases", ("pitching", "K"): "strikeouts", ("pitching", "IP"): "outs",
+               ("pitching", "H"): "hits_allowed", ("pitching", "ER"): "earned_runs", ("batting", "HR"): "home_runs",
+               ("batting", "RBI"): "rbi", ("batting", "R"): "runs", ("batting", "H"): "hits",
+               ("passing", "YDS"): "passing_yards", ("rushing", "YDS"): "rushing_yards", ("receiving", "YDS"): "receiving_yards",
+               ("receiving", "REC"): "receptions", ("rushing", "CAR"): "rushing_attempts", ("passing", "TD"): "passing_touchdowns",
+               ("passing", "C/ATT"): "completions", (None, "PTS"): "points", (None, "REB"): "rebounds", (None, "AST"): "assists",
+               (None, "3PT"): "three", (None, "SOG"): "shots_on_goal", (None, "SV"): "saves", (None, "BS"): "blocked",
+               (None, "G"): "goals", (None, "STL"): "steals", (None, "BLK"): "blocks"}
+BOOK_ORDER = ["draftkings", "fanduel"]  # free tier carries these two; DraftKings matches the ESPN closes
+
+
+def prop_market_key(spec):
+    st = spec["stat"]
+    if isinstance(st, list):  # combos: points+rebounds+assists etc.
+        return "_".join(PROP_MARKET.get(x, "") for x in st)
+    return PROP_MARKET.get(st)
+
+
+def pick_prop_rows(rows, spec, mkey, start):
+    """The Over/Under pair for this player, market and line from one book, or None."""
+    want = {}
+    for r in rows or []:
+        if r.get("is_live") or r.get("is_active") is False or not r.get("is_player_prop", True):
+            continue
+        if (r.get("market_segment") or "full_game") != "full_game":
+            continue
+        mt = norm(r.get("market_type") or "").replace(" ", "_")
+        if mkey not in mt or (mkey == "hits" and "allowed" in mt) or (mkey == "runs" and "earned" in mt):
+            continue
+        if r.get("line") is None or float(r["line"]) != spec["line"]:
+            continue
+        if norm(r.get("player_name")) != norm(spec["player"]):
+            continue
+        st = r.get("event_start_time")
+        if st and start and abs((dt.datetime.fromisoformat(st.replace("Z", "+00:00")) - start).total_seconds()) > 3 * 3600:
+            continue  # another game of this player's
+        side = norm(r.get("selection_type") or r.get("selection") or "")
+        side = "over" if "over" in side else "under" if "under" in side else None
+        book = (r.get("sportsbook") or "").lower()
+        if side and book:
+            want.setdefault(book, {})[side] = r
+    for book in BOOK_ORDER + sorted(set(want) - set(BOOK_ORDER)):
+        pair = want.get(book) or {}
+        if spec["side"] in pair:
+            other = pair.get("under" if spec["side"] == "over" else "over")
+            return book, pair[spec["side"]], other
+    return None
+
+
 def step_prekick(db):
+    """Near-kickoff prices for open player props (singles and parlay legs), found by
+    player name: one SharpAPI call per player, only inside the last 75 minutes before
+    the game. Both sides are saved so the close step can de-vig them (prop CLV + xev)."""
     key = os.environ.get("SHARPAPI_KEY")
     if not key:
         log("prekick: SHARPAPI_KEY not set, skipped")
@@ -428,60 +547,48 @@ def step_prekick(db):
     horizon = NOW + dt.timedelta(minutes=75)
     open_rows = list(db.picks.find({"result": "OPEN", "date": {"$gte": (NOW - dt.timedelta(days=1)).date().isoformat()}}))
     calls = saved = 0
+    fetched = {}
     for p in open_rows:
         legs = p.get("legs") or [{"game_key": p.get("game_key"), "market": p.get("bet_type"), "selection": p.get("bet")}]
         for leg in legs:
+            if leg.get("status") in ("WIN", "LOSS", "PUSH"):
+                continue
             spec = parse(leg.get("selection"), leg.get("market"), p.get("bet_type") if not p.get("legs") else None, p.get("sport"))
             if not spec or spec["kind"] != "prop":
                 continue
-            snap = db.odds_snapshots.find_one({"game_key": leg.get("game_key"), "selection": {"$regex": re.escape(spec["player"])},
-                                               "source": {"$regex": "event_id="}}, sort=[("captured_at", -1)])
-            m = re.search(r"event_id=([\w\-]+)", (snap or {}).get("source", ""))
-            mk = re.search(r"market_type=(\w+)", (snap or {}).get("source", ""))
-            if not m or not mk:
-                continue
+            mkey = prop_market_key(spec)
             ev = event_for_key(p.get("sport"), leg.get("game_key"), p.get("matchup"))
-            if not ev:
+            if not mkey or not ev:
                 continue
             start = dt.datetime.fromisoformat(event_state(ev[2])["start"].replace("Z", "+00:00"))
             if not (NOW <= start <= horizon):
                 continue  # only spend a SharpAPI call inside the last 75 minutes before kickoff
             recent = db.odds_snapshots.find_one({"game_key": leg.get("game_key"), "kind": "pre_kick", "selection": leg.get("selection"),
-                                                 "captured_at": {"$gte": (NOW - dt.timedelta(minutes=50)).strftime("%Y-%m-%dT%H:%M:%SZ")}})
+                                                 "captured_at": {"$gte": (NOW - dt.timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%SZ")}})
             if recent:
                 continue
-            try:
-                calls += 1
-                data = sharp_get(f"/odds?event_id={m.group(1)}&market_type={mk.group(1)}", key)
-            except (urllib.error.URLError, ValueError) as e:
-                log(f"  sharpapi error: {type(e).__name__}")
+            who = spec["player"]
+            if who not in fetched:
+                try:
+                    calls += 1
+                    q = urllib.parse.urlencode({"player_name": who, "is_live": "false", "market": "props", "limit": 200})
+                    data = sharp_get(f"/odds?{q}", key)
+                    fetched[who] = data.get("data") if isinstance(data, dict) else data
+                except (urllib.error.URLError, ValueError) as e:
+                    log(f"  sharpapi error for {who}: {type(e).__name__}")
+                    fetched[who] = None
+            got = pick_prop_rows(fetched[who], spec, mkey, start)
+            if not got:
+                log(f"  prekick: no {mkey} {spec['line']} line for {who}")
                 continue
-            rows = data.get("data") if isinstance(data, dict) else data
-            best = None
-            for r in rows or []:
-                start = r.get("event_start_time")
-                if start and dt.datetime.fromisoformat(start.replace("Z", "+00:00")) > horizon:
-                    best = "later"
-                    break
-                if not r.get("is_player_prop") or r.get("is_live") or r.get("is_active") is False:
-                    continue
-                who = norm(r.get("player_name") or r.get("selection") or "")
-                if norm(spec["player"]) not in who:
-                    continue
-                if r.get("line") is not None and float(r["line"]) != spec["line"]:
-                    continue
-                side = norm(r.get("selection_type") or r.get("selection") or "")
-                if spec["side"] not in side:
-                    continue
-                if best is None or (r.get("sportsbook") or "").lower() == "draftkings":
-                    best = r
-            if best in (None, "later"):
-                continue
+            book, row, other = got
             db.odds_snapshots.insert_one({"captured_at": ISO, "kind": "pre_kick", "game_key": leg.get("game_key"),
-                                          "market": mk.group(1), "selection": leg.get("selection"), "point": spec["line"],
-                                          "book": best.get("sportsbook"), "price_american": best.get("odds_american"),
-                                          "price_decimal": best.get("odds_decimal"), "source": f"sharpapi pipeline event_id={m.group(1)}"})
+                                          "market": row.get("market_type"), "selection": leg.get("selection"), "point": spec["line"],
+                                          "book": book, "price_american": row.get("odds_american"), "price_decimal": row.get("odds_decimal"),
+                                          "other_price_decimal": (other or {}).get("odds_decimal"),
+                                          "source": f"sharpapi pipeline event_id={row.get('event_id')}"})
             saved += 1
+            log(f"  prekick {leg.get('selection')!r}: {book} {row.get('odds_american')} (other side {(other or {}).get('odds_american')})")
     db.api_budget.update_one({"_id": f"sharpapi:{NOW.strftime('%Y-%m')}"},
                              {"$inc": {"pipeline_calls": calls}, "$set": {"last_checked": ISO}}, upsert=True)
     log(f"prekick: {saved} prop prices saved, {calls} SharpAPI calls")
