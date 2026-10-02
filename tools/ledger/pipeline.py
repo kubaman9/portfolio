@@ -398,7 +398,7 @@ def step_summary(db):
     rows = list(db.picks.find({"date": {"$gte": FIRST_LIVE_DAY}}, {
         "date": 1, "sport": 1, "bet_type": 1, "result": 1, "units": 1, "stake_units": 1, "clv": 1,
         "confidence": 1, "anchor_prob": 1, "model_prob": 1, "legs": 1, "slip_type": 1, "tags": 1,
-        "anchor_quality": 1, "thesis_quality": 1, "ev_pct": 1, "price_decimal": 1, "xev": 1}))
+        "anchor_quality": 1, "thesis_quality": 1, "ev_pct": 1, "price_decimal": 1, "xev": 1, "stake_tier": 1}))
     graded = [r for r in rows if r.get("result") in ("WIN", "LOSS", "PUSH")]
 
     def seg(items):
@@ -456,6 +456,8 @@ def step_summary(db):
         "by_conf_band": by(lambda r: _band(r.get("confidence")) if not r.get("legs") else None),
         "by_anchor_quality": by(lambda r: r.get("anchor_quality")),
         "by_thesis_quality": by(lambda r: r.get("thesis_quality")),
+        # V17 stake ladder: conviction / standard / lean / volume (singles and slips)
+        "by_stake_tier": by(lambda r: (r.get("stake_tier") or "").lower() or None),
         "calibration": {"n": len(stated),
                         "stated_mean": round(sum(r["confidence"] for r in stated) / len(stated), 1) if stated else None,
                         "hit_rate": round(100 * sum(r["result"] == "WIN" for r in stated) / len(stated), 1) if stated else None},
@@ -475,6 +477,7 @@ def step_summary(db):
     doc["by_sport_bet_type"] = sport_type
     doc["flags"] = flags_for({"sport": doc["by_sport"], "bet_type": doc["by_bet_type"], "slip_type": doc["by_slip_type"],
                               "conf_band": doc["by_conf_band"], "sport_bet_type": sport_type, "tag": doc["by_tag"],
+                              "stake_tier": doc["by_stake_tier"],
                               "structure": {"singles": doc["singles"], "parlays": doc["parlays"]}})
     doc["quality"] = quality_check(db)
     db.ledger_summary.replace_one({"_id": "current"}, doc, upsert=True)
