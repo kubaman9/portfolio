@@ -284,7 +284,9 @@ def grade_pick(p):
                     notes.append(f"{leg.get('selection')}: {st}")
             else:
                 spec = parse(leg.get("selection"), leg.get("market"), None, sport)
-                found = event_for_key(sport, leg.get("game_key"), leg.get("selection") if spec and spec["kind"] != "prop" else p.get("matchup"))
+                # sides name a team in the selection; totals and props do not, so use the matchup
+                hint = leg.get("selection") if spec and spec["kind"] in ("ml", "spread") else p.get("matchup")
+                found = event_for_key(sport, leg.get("game_key"), hint)
                 st = None
                 if spec and found and event_state(found[2])["final"]:
                     st = outcome(spec, found[2], sport, found[0], found[1])

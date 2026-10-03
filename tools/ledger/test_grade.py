@@ -74,7 +74,10 @@ p6["legs"] = [L("2026-10-01|PHI-ATL", "player_total_bases", "Kyle Schwarber Over
 # 9/29 Olson 0-4 (0 TB), Albies double (2 TB)
 p7 = S("2026-09-29", "MLB", "Phillies @ Braves (same-game prop parlay)", "Matt Olson Over 1.5 Total Bases + Ozzie Albies Over 1.5 Total Bases", "Parlay", "LOSS", dec=5.3436)
 p7["legs"] = [L("2026-09-29|PHI-ATL", "player_total_bases", "Matt Olson Over 1.5", 2.19), L("2026-09-29|PHI-ATL", "player_total_bases", "Ozzie Albies Over 1.5", 2.44)]
-CASES += [p6, p7, S("2026-09-29", "MLB", "Phillies @ Braves", "Ozzie Albies Over 1.5 Total Bases", "Player Prop", "WIN", dec=2.44)]
+# a totals leg has no team in its text, and the game_key used "NW" where ESPN says "NU"
+p8 = S("2026-10-02", "CFB", "Penn State @ Northwestern (same-game parlay)", "Northwestern +2.5 + Total Under 45.5", "Parlay", "LOSS", stake=0.25, dec=3.814)
+p8["legs"] = [L("2026-10-02|PSU-NW", "spread", "Northwestern Wildcats +2.5", 1.9804), L("2026-10-02|PSU-NW", "total_points", "Under 45.5", 1.9259)]
+CASES += [p6, p7, p8, S("2026-09-29", "MLB", "Phillies @ Braves", "Ozzie Albies Over 1.5 Total Bases", "Player Prop", "WIN", dec=2.44)]
 
 
 def main():
