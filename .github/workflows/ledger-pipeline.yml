@@ -67,7 +67,7 @@ jobs:
         run: |
           # Every run grades (it used to be skipped on pre-kick runs, which left whole
           # nights ungraded when those were the only runs GitHub actually started).
-          list="grade sync close audit enrich summary"
+          list="grade sync close tipsters audit enrich summary"
           if [ "$HAS_SHARP" = "true" ]; then list="prekick $list"; fi
           echo "list=$list" >> "$GITHUB_OUTPUT"
           # Overnight (10pm-2:59am ET): stay alive until 3:20am ET, the daily run's start + 20 min.

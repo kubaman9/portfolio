@@ -62,11 +62,15 @@ db.odds_snapshots.insert_one(dict(kind="pre_kick", game_key="2026-09-29|PHI-ATL"
                                   point=1.5, book="draftkings", price_american=120, price_decimal=2.2, other_price_decimal=1.65,
                                   captured_at="2026-09-29T22:00:00Z"))
 
+# an outside capper's pick on the same game: graded and scored like ours
+db.tipster_picks.insert_one(dict(date=D, tipster="tmr:testcapper", sport="NFL", matchup="Cincinnati Bengals @ Pittsburgh Steelers",
+                                 bet="Pittsburgh Steelers +3.5", bet_type="Spread", price_decimal=1.9091, stake_units=1, result="OPEN"))
+
 import datetime as _dt
 # a fresh pick missing its wrong_if/anchor fields, for the quality check (which looks back 3 days)
 db.picks.insert_one(dict(date=_dt.date.today().isoformat(), sport="NFL", matchup="A @ B", bet="A +3.5", bet_type="Spread",
                          stake_units=0.5, price_decimal=1.91, result="OPEN", confidence=53, ev_pct=1.0, book="fanduel"))
-for step in ("grade", "sync", "close", "audit", "summary"):
+for step in ("grade", "sync", "close", "tipsters", "audit", "summary"):
     pipeline.STEPS[step](db)
 
 fails = []
@@ -102,6 +106,10 @@ rows = [dict(player_name="Ozzie Albies", market_type="player_total_bases", line=
 spec = pipeline.parse("Ozzie Albies Over 1.5", "player_total_bases", None, "MLB")
 got = pipeline.pick_prop_rows(rows, spec, pipeline.prop_market_key(spec), None)
 check(got and got[0] == "draftkings" and got[1]["odds_decimal"] == 2.2 and got[2]["odds_decimal"] == 1.65, f"prekick picks the DraftKings Over/Under pair at the same line ({got and got[0]})")
+tp = db.tipster_picks.find_one({"tipster": "tmr:testcapper"})
+ts = (db.tipsters.find_one({"_id": "tmr:testcapper"}) or {}).get("stats") or {}
+check(tp["result"] == "WIN" and isinstance(tp.get("xev"), float) and ts.get("n") == 1 and ts.get("proven") is False,
+      f"tipster pick graded + priced, scoreboard written ({tp['result']}, xev={tp.get('xev')}, stats={ts})")
 d2 = db.dashboard_days.find_one({"_id": D2})
 check(d2["slips"][0]["result"] == "LOSS" and d2["slips"][0]["units"] == -0.5, "sync mirrored a run-graded parlay onto its day's page")
 check(pipeline.write_back(db, db.picks.find_one({"date": D2}), {"result": "LOSS", "units": -0.5}) is False, "write_back reports no change when nothing differs")

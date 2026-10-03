@@ -10,6 +10,8 @@ picks instead of arithmetic.
 grade    OPEN picks whose games are final -> result, units, legs, final_score,
          written to picks AND to that day's dashboard_days entry.
 sync     grades the daily run wrote to picks itself -> that day's dashboard_days rows.
+tipsters outside cappers' logged picks (tipster_picks) graded and priced the same way;
+         per-tipster record and fair-close value into tipsters.stats.
 close    ESPN closing line + CLV for graded single game-level picks with clv null.
 audit    re-grade picks graded in the last 7 days; disagreements go to grade_audit
          (the daily run must apply them) -- nothing graded is silently rewritten.
@@ -286,6 +288,64 @@ def close_parlay(db, p):
             upd.pop("xev_tried")  # a pre-kick price may still land; retry for two days
     db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
     return 1
+
+
+def step_tipsters(db):
+    """Outside cappers the daily run logs (constitution V17-10): grade their picks with
+    the same code as ours, price them against the fair close, and keep a per-tipster
+    scoreboard in tipsters.stats so a capper earns weight only on a measured record."""
+    graded = priced = 0
+    for t in db.tipster_picks.find({"result": "OPEN", "date": {"$lt": NOW.date().isoformat()}}):
+        try:
+            upd = grade_pick(dict(t, stake_units=t.get("stake_units") or 1))
+        except Exception as e:
+            log(f"  tipster grade error on {t.get('bet')!r}: {type(e).__name__}")
+            continue
+        if upd and "result" in upd:
+            upd.pop("_espn", None)
+            upd.update({"graded_by": "pipeline", "graded_at": ISO})
+            db.tipster_picks.update_one({"_id": t["_id"]}, {"$set": upd})
+            graded += 1
+        elif t.get("date", "") < (NOW - dt.timedelta(days=4)).date().isoformat():
+            db.tipster_picks.update_one({"_id": t["_id"]}, {"$set": {"result": "UNGRADED", "graded_at": ISO}})
+    for t in db.tipster_picks.find({"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "legs": {"$exists": False},
+                                    "xev_tried": {"$ne": True}}):
+        spec = parse(t.get("bet"), None, t.get("bet_type"), t.get("sport"))
+        upd = {"xev_tried": True}
+        if spec and spec["kind"] != "prop":
+            found = find_event(t.get("sport"), t.get("date"), t.get("matchup")) or \
+                event_for_key(t.get("sport"), t.get("game_key"), t.get("bet"))
+            if found:
+                try:
+                    c = closing_for(t, found[0], found[1], found[2]["id"], competitors(found[2]))
+                except Exception:
+                    c = None
+                for k in ("clv", "xev", "close_fair_prob", "closing_line"):
+                    if c and k in c:
+                        upd[k] = c[k]
+        db.tipster_picks.update_one({"_id": t["_id"]}, {"$set": upd})
+        priced += "xev" in upd
+    n_tip = 0
+    for row in db.tipster_picks.aggregate([
+            {"$match": {"result": {"$in": ["WIN", "LOSS", "PUSH"]}}},
+            {"$group": {"_id": "$tipster", "W": {"$sum": {"$cond": [{"$eq": ["$result", "WIN"]}, 1, 0]}},
+                        "L": {"$sum": {"$cond": [{"$eq": ["$result", "LOSS"]}, 1, 0]}},
+                        "P": {"$sum": {"$cond": [{"$eq": ["$result", "PUSH"]}, 1, 0]}},
+                        "units": {"$sum": {"$ifNull": ["$units", 0]}},
+                        "staked": {"$sum": {"$ifNull": ["$stake_units", 1]}},
+                        "xevs": {"$push": "$xev"}, "clvs": {"$push": "$clv"}}}]):
+        if not row["_id"]:
+            continue
+        xevs = [x for x in row["xevs"] if isinstance(x, (int, float))]
+        clvs = [x for x in row["clvs"] if isinstance(x, (int, float))]
+        stats = {"n": row["W"] + row["L"], "W": row["W"], "L": row["L"], "P": row["P"],
+                 "units": round(row["units"], 3), "roi": round(100 * row["units"] / row["staked"], 1) if row["staked"] else None,
+                 "n_xev": len(xevs), "exp_roi": round(sum(xevs) / len(xevs), 2) if xevs else None,
+                 "mean_clv": round(sum(clvs) / len(clvs), 2) if clvs else None}
+        stats["proven"] = stats["n"] >= 30 and (stats["exp_roi"] or 0) > 0
+        db.tipsters.update_one({"_id": row["_id"]}, {"$set": {"stats": stats, "stats_updated_at": ISO}}, upsert=True)
+        n_tip += 1
+    log(f"tipsters: {graded} outside picks graded, {priced} priced at the close, {n_tip} tipster scoreboards updated")
 
 
 def step_audit(db):
@@ -638,8 +698,8 @@ def step_enrich(db):
 
 
 STEPS = {"enrich": step_enrich, "grade": step_grade, "sync": step_sync, "close": step_close, "audit": step_audit,
-         "summary": step_summary, "prekick": step_prekick}
-DEFAULT = ["grade", "sync", "close", "audit", "enrich", "summary"]
+         "summary": step_summary, "prekick": step_prekick, "tipsters": step_tipsters}
+DEFAULT = ["grade", "sync", "close", "tipsters", "audit", "enrich", "summary"]
 
 
 def run_steps(db, steps):
