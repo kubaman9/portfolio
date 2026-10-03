@@ -259,3 +259,17 @@ def total_bases(summ, player):
     if box_h is None or box_h != hits:
         return None
     return float(tb)
+
+
+def anytime_td(summ, player):
+    """Rushing + receiving touchdowns for a football player (an anytime-TD prop), or None
+    when the player is not in the box score's rushing or receiving tables (did not
+    play, or only passed: a QB who only threw TDs has 0 and is graded on that)."""
+    found, tds = False, 0.0
+    for group in ("rushing", "receiving", "passing"):
+        v = player_stat(summ, player, (group, "TD"))
+        if v is not None:
+            found = True
+            if group != "passing":
+                tds += v
+    return tds if found else None

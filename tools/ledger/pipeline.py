@@ -65,6 +65,25 @@ def _words(s):
     return [w for w in norm(s).split() if len(w) > 1 or w.isdigit()]
 
 
+def match_slip(slips, pick):
+    """The dashboard slip for a parlay pick. The run often words the legs differently
+    in picks and on the page ("Pittsburgh Panthers" vs "Pittsburgh Moneyline"), so score
+    each slip by how much of the pick's bet text or leg text it contains and take the
+    best one only when it is a clear, unique match."""
+    def words(t):
+        return set(_words(re.sub(r"\(.*?\)", " ", t or "")))
+    keys = [words(pick.get("bet")), words(" ".join(l.get("selection", "") for l in pick.get("legs") or []))]
+    scored = []
+    for s in slips:
+        hay = words((s.get("legs") or "") + " " + (s.get("shape") or "") + " " +
+                    " ".join(ld.get("selection", "") for ld in s.get("legs_detail") or []))
+        scored.append((max((len(k & hay) / len(k)) for k in keys if k) if any(keys) else 0, s))
+    scored.sort(key=lambda x: -x[0])
+    if not scored or scored[0][0] < 0.75 or (len(scored) > 1 and scored[1][0] == scored[0][0]):
+        return None
+    return scored[0][1]
+
+
 def write_back(db, pick, upd):
     """Mirror a pick's grade into dashboard_days/<date> (picks[] or slips[])."""
     day = db.dashboard_days.find_one({"_id": pick.get("date")}, {"picks": 1, "slips": 1})
@@ -79,19 +98,19 @@ def write_back(db, pick, upd):
             changed = True
 
     if pick.get("legs"):
-        want = [w for leg in pick["legs"] for w in _words(re.sub(r"\(.*?\)", "", leg.get("selection", "")))]
-        for s in day.get("slips") or []:
-            hay = set(_words(re.sub(r"\(.*?\)", " ", (s.get("legs") or "") + " " + (s.get("shape") or ""))))
-            if want and all(w in hay for w in want):
-                put(s, "result", upd["result"])
-                put(s, "units", upd["units"])
-                if "clv" in upd:
-                    put(s, "clv", upd["clv"])
-                for ld in s.get("legs_detail") or []:
-                    for leg in upd.get("legs", []):
-                        if set(_words(leg.get("selection"))) <= set(_words(ld.get("selection"))):
-                            put(ld, "status", leg.get("status"))
-                break
+        s = match_slip(day.get("slips") or [], pick)
+        if s is not None:
+            put(s, "result", upd["result"])
+            put(s, "units", upd["units"])
+            if "clv" in upd:
+                put(s, "clv", upd["clv"])
+            lds, legs = s.get("legs_detail") or [], upd.get("legs") or pick.get("legs") or []
+            for i, ld in enumerate(lds):
+                # same run wrote both lists in the same order; fall back to name matching
+                leg = legs[i] if len(lds) == len(legs) else next(
+                    (l for l in legs if set(_words(l.get("selection"))) <= set(_words(ld.get("selection")))), None)
+                if leg and leg.get("status"):
+                    put(ld, "status", leg.get("status"))
     else:
         for p in day.get("picks") or []:
             if norm(p.get("bet")) == norm(pick.get("bet")):

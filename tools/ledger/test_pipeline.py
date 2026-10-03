@@ -110,6 +110,13 @@ tp = db.tipster_picks.find_one({"tipster": "tmr:testcapper"})
 ts = (db.tipsters.find_one({"_id": "tmr:testcapper"}) or {}).get("stats") or {}
 check(tp["result"] == "WIN" and isinstance(tp.get("xev"), float) and ts.get("n") == 1 and ts.get("proven") is False,
       f"tipster pick graded + priced, scoreboard written ({tp['result']}, xev={tp.get('xev')}, stats={ts})")
+# the run worded the slip differently on the page than in picks (10/2 Pitt slip)
+slips = [{"shape": "Same-game: Northwestern +2.5 + Total Under 45.5", "legs": "Northwestern +2.5 (-102) + Total Under 45.5 (-108)"},
+         {"shape": "Same-game: Pittsburgh Moneyline + Pittsburgh +2.5", "legs": "Pittsburgh Moneyline (+114) + Pittsburgh +2.5 (-105)"}]
+pk = {"bet": "Pittsburgh Moneyline + Pittsburgh +2.5", "legs": [{"selection": "Pittsburgh Panthers"}, {"selection": "Pittsburgh Panthers +2.5"}]}
+check(pipeline.match_slip(slips, pk) is slips[1], "slip matched despite different leg wording")
+pk = {"bet": "Northwestern +2.5 + Total Under 45.5", "legs": [{"selection": "Northwestern Wildcats +2.5"}, {"selection": "Under 45.5"}]}
+check(pipeline.match_slip(slips, pk) is slips[0], "NW slip matched by its bet text")
 d2 = db.dashboard_days.find_one({"_id": D2})
 check(d2["slips"][0]["result"] == "LOSS" and d2["slips"][0]["units"] == -0.5, "sync mirrored a run-graded parlay onto its day's page")
 check(pipeline.write_back(db, db.picks.find_one({"date": D2}), {"result": "LOSS", "units": -0.5}) is False, "write_back reports no change when nothing differs")

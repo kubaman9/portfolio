@@ -4,7 +4,7 @@ pipeline then leaves the row for the daily run instead of guessing."""
 import re
 
 from espn import (norm, find_event, event_state, competitors, score_of, team_names,
-                  summary, core_odds, player_stat, total_bases, scoreboard, LEAGUES)
+                  summary, core_odds, player_stat, total_bases, anytime_td, scoreboard, LEAGUES)
 
 FOOTBALL = {"NFL", "CFB"}
 BASEBALL = {"MLB"}
@@ -105,6 +105,7 @@ def signed_point(text):
     return float(m[-1]) if m else None
 
 
+FB_TD_RX = r"anytime (td|touchdown)|to score a (td|touchdown)|anytime[ _]td"
 SCORER_RX = r"anytime (goal ?scorer|scorer|goalscorer|to score)|to score anytime|anytime goal|to score\b"
 ASSIST_RX = r"anytime assist|to assist|to record an assist"
 
@@ -123,6 +124,9 @@ def parse(text, market, bet_type, sport):
     if fam == "hockey" and (re.search(SCORER_RX, t) or re.search(SCORER_RX, mk)):
         player = re.split(r"\s+(?:anytime|to score)", text, flags=re.I)[0].strip()
         return {"kind": "prop", "player": player, "stat": (None, "G"), "side": "over", "line": 0.5} if player else None
+    if fam == "football" and (re.search(FB_TD_RX, t) or re.search(FB_TD_RX, mk)):
+        player = re.split(r"\s+(?:anytime|to score|1st|first)", text, flags=re.I)[0].strip()
+        return {"kind": "prop", "player": player, "stat": "ANYTD", "side": "over", "line": 0.5} if player else None
     table = PROP_STATS.get(fam, [])
     is_prop = "player" in mk or "pitcher" in mk or "batter" in mk or bt == "player prop" or any(re.search(rx, t) or re.search(rx, mk) for rx, _ in table)
     if is_prop:
@@ -169,6 +173,8 @@ def outcome(spec, ev, sport, sport_key, league):
         summ = summary(sport_key, league, ev["id"])
         if spec["stat"] == ("batting", "TB"):
             val = total_bases(summ, spec["player"])
+        elif spec["stat"] == "ANYTD":
+            val = anytime_td(summ, spec["player"])
         else:
             val = player_stat(summ, spec["player"], spec["stat"])
         if val is None:
