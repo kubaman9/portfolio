@@ -79,6 +79,12 @@ p8 = S("2026-10-02", "CFB", "Penn State @ Northwestern (same-game parlay)", "Nor
 p8["legs"] = [L("2026-10-02|PSU-NW", "spread", "Northwestern Wildcats +2.5", 1.9804), L("2026-10-02|PSU-NW", "total_points", "Under 45.5", 1.9259)]
 CASES += [S("2026-10-02", "CFB", "Penn State @ Northwestern", "Carson Hansen Anytime TD", "Player Prop", "WIN", dec=1.8),
           S("2026-10-02", "CFB", "Penn State @ Northwestern", "James Peoples Anytime TD", "Player Prop", "LOSS", dec=1.8)]
+# 10/3: game_key written with team names, and anytime-TD legs logged as "<player> Yes"
+p9 = S("2026-10-03", "CFB", "Indiana Hoosiers @ Rutgers Scarlet Knights (same-game parlay)", "Josh Hoover O2.5 Pass TDs + Charlie Becker Anytime TD", "Parlay", "WIN", stake=0.1, dec=2.5086)
+p9["legs"] = [L("2026-10-03|INDIANA-RUTGERS", "player_pass_tds", "Josh Hoover Over 2.5", 1.7246), L("2026-10-03|INDIANA-RUTGERS", "player_anytime_td", "Charlie Becker Yes", 1.4545)]
+p10 = S("2026-10-03", "CFB", "Vanderbilt Commodores @ Georgia Bulldogs + Indiana Hoosiers @ Rutgers Scarlet Knights (cross-game prop parlay)", "Nate Frazier Anytime TD + Charlie Becker Anytime TD", "Parlay", "LOSS", stake=0.1, dec=2.0593)
+p10["legs"] = [L("2026-10-03|VANDERBILT-GEORGIA", "player_anytime_td", "Nate Frazier Yes", 1.4167), L("2026-10-03|INDIANA-RUTGERS", "player_anytime_td", "Charlie Becker Yes", 1.4545)]
+CASES += [p9, p10]
 CASES += [p6, p7, p8, S("2026-09-29", "MLB", "Phillies @ Braves", "Ozzie Albies Over 1.5 Total Bases", "Player Prop", "WIN", dec=2.44)]
 
 

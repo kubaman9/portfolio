@@ -126,6 +126,7 @@ def parse(text, market, bet_type, sport):
         return {"kind": "prop", "player": player, "stat": (None, "G"), "side": "over", "line": 0.5} if player else None
     if fam == "football" and (re.search(FB_TD_RX, t) or re.search(FB_TD_RX, mk)):
         player = re.split(r"\s+(?:anytime|to score|1st|first)", text, flags=re.I)[0].strip()
+        player = re.sub(r"\s+(yes|no)$", "", player, flags=re.I).strip()  # "Charlie Becker Yes" (book's Yes/No side)
         return {"kind": "prop", "player": player, "stat": "ANYTD", "side": "over", "line": 0.5} if player else None
     table = PROP_STATS.get(fam, [])
     is_prop = "player" in mk or "pitcher" in mk or "batter" in mk or bt == "player prop" or any(re.search(rx, t) or re.search(rx, mk) for rx, _ in table)
@@ -224,7 +225,10 @@ def event_for_key(sport, game_key, hint):
             for ev in events:
                 comps = competitors(ev)
                 abbrs = {norm(c.get("team", {}).get("abbreviation")) for c in comps}
-                if codes <= abbrs or (hint and team_in_text(hint, comps) is not None and codes & abbrs):
+                # runs write codes as abbreviations (IU-RUTG) or as names (INDIANA-RUTGERS)
+                by_name = all(any(code in team_names(c) for c in comps) for code in codes) and \
+                    len({i for code in codes for i, c in enumerate(comps) if code in team_names(c)}) == len(codes)
+                if codes <= abbrs or by_name or (hint and team_in_text(hint, comps) is not None and codes & abbrs):
                     return sk, lg, ev
     return None
 

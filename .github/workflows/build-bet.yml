@@ -9,19 +9,23 @@ name: Build betting dashboard from Mongo
 # The page passphrase is read from betting_agent.site_config.page_passphrase,
 # or from a BET_PAGE_PASSPHRASE secret if you add one.
 
-# ONE PUBLISH A MORNING (Jakub's call): the site changes once a day, after the 3am ET
-# daily run has finished the card, not every few minutes. Scheduled runs start from
-# ~3:40am ET (several tries, because GitHub delays and drops scheduled runs), wait until
-# Mongo shows today's daily run "completed" (or 7:30am ET at the latest), publish once,
-# and exit. Later tries that day find nothing changed and exit in seconds. Overnight
-# grades are in by then (the ledger pipeline grades until 3:20am ET), so the morning
-# page carries yesterday's results and today's card together.
-# Manual runs (workflow_dispatch) and pushes to the template publish immediately.
+# ONE PUBLISH A DAY (Jakub's call): the site changes once, after the 3am ET daily run
+# has finished the card, not every few minutes. GitHub delays and silently drops
+# scheduled runs (on 10/4 it dropped all seven morning tries), so there are two kinds
+# of chances to publish, and the first one that finds the card ready wins:
+#  - the early-morning schedules below wait (up to 7:30am ET) for the daily run;
+#  - every ledger-pipeline run (~every 26 min) triggers a quick check that publishes
+#    only if today's run has finished and the page has not been published today.
+# Once the page is published that day every later try exits in seconds, so the site
+# still changes once a day. Manual runs and template pushes publish immediately.
 on:
   schedule:
     - cron: "41,53 7 * * *"         # 3:41, 3:53am EDT
     - cron: "11,29,47 8 * * *"      # 4:11-4:47am EDT (3:11-3:47am EST: they wait)
     - cron: "13,37 9 * * *"         # late tries if GitHub dropped the earlier ones
+  workflow_run:
+    workflows: ["Ledger pipeline (grading, CLV, audit, summary)"]
+    types: [completed]
   workflow_dispatch:
   push:
     branches: [main]
@@ -73,7 +77,7 @@ jobs:
           git fetch origin gh-pages:gh-pages
           git worktree add ../ghpages gh-pages
 
-      - name: Build and publish (once a morning, after the daily run finishes)
+      - name: Build and publish (once a day, after the daily run finishes)
         if: steps.guard.outputs.go == 'true'
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
@@ -100,8 +104,9 @@ jobs:
             echo "published $stamp"
           }
 
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            # already published this morning (after 3am ET)? then this is a duplicate try: stop.
+          event="${{ github.event_name }}"
+          if [ "$event" = "schedule" ] || [ "$event" = "workflow_run" ]; then
+            # already published today (after 3am ET)? then this is a duplicate try: stop.
             built=$(grep -o 'bet-build" content="[^"]*"' ../ghpages/bet/index.html | sed 's/.*content="//; s/"//' || true)
             if [ -n "$built" ]; then
               built_et=$(TZ=America/New_York date -d "$built" +%F%H)
@@ -111,6 +116,10 @@ jobs:
                 exit 0
               fi
             fi
-            python3 tools/bet/wait_for_daily_run.py --until-et 07:30
+            if [ "$event" = "workflow_run" ]; then
+              python3 tools/bet/wait_for_daily_run.py --until-et 07:30 --check || { echo "not ready; a later run will publish"; exit 0; }
+            else
+              python3 tools/bet/wait_for_daily_run.py --until-et 07:30
+            fi
           fi
           build_and_publish
