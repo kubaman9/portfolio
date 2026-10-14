@@ -14,7 +14,9 @@ const roles = [
   "full-stack developer",
   "AI builder",
   "CS senior @ Indiana University",
-  "2nd dan black belt",
+  "SWE intern @ Trim-Tex '26",
+  "AI in Business Club president",
+  "3rd dan black belt",
 ];
 
 /** Cycling typewriter effect */
@@ -74,7 +76,8 @@ export const Home = () => {
             </p>
             <p>
               <span className="term-comment">&gt; </span>
-              I build full-stack apps, AI-powered tools, and Android software — and as VP of the
+              I build full-stack apps, AI-powered tools, and Android software — I shipped four
+              internal tools as a Software Development Intern at Trim-Tex, and as President of the
               AI in Business Club, I connect engineers with the people who need them.
             </p>
             <p>

@@ -61,9 +61,10 @@ const featured = [
         title: "AI in Business Club Website",
         year: "2025",
         description:
-            "The official website I built and maintain for the AI in Business Club at Indiana " +
-            "University, where I serve as Vice President.",
-        tech: ["JavaScript", "Web"],
+            "The official website I designed and built in React and JavaScript for the AI in Business " +
+            "Club at Indiana University, where I'm President — including an AI chatbot on the Gemini API " +
+            "that helps students and professionals bring AI into business products and workflows.",
+        tech: ["React", "JavaScript", "Gemini API"],
         link: "https://github.com/kubaman9/AIBWebsite",
     },
     {
