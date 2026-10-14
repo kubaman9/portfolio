@@ -3,6 +3,30 @@ import { SectionPrompt, Prompt } from "../Prompt";
 
 const featured = [
     {
+        name: "kubaman-ledger",
+        title: "Kubaman Ledger — Autonomous AI Sports-Analytics Agent",
+        year: "2026",
+        spotlight: true,
+        description:
+            "An AI agent system that researches every day's sports slate on its own, prices markets, " +
+            "logs reasoned picks to a database, grades itself against real box scores, and publishes a " +
+            "live analytics dashboard — then reflects weekly and rewrites its own rules within guardrails.",
+        highlights: [
+            ["Multi-agent design", "a daily Claude (Sonnet) research run and a weekly Claude (Opus) review agent on scheduled routines; bulk research fans out to subagents that return compact summaries, which cut context (and cost) dramatically"],
+            ["Retrieval (RAG)", "MongoDB Atlas Vector Search with Voyage embeddings: before each pick the agent retrieves similar past situations and post-mortem lessons, filtered by sport"],
+            ["Grounded probabilities", "the model starts from the de-vigged market price and may only adjust for sourced information; a Brier-score test checks whether its adjustments actually beat the market"],
+            ["Verification layer", "a deterministic Python pipeline (GitHub Actions) re-grades the LLM's work from ESPN box scores and flagged a misgraded bet the agent had recorded from a bad recap"],
+            ["Guardrailed self-improvement", "a two-layer prompt: a fixed constitution plus a tighten-only playbook the agents update, with automatic statistical gates (Wilson bounds vs break-even)"],
+            ["Live dashboard", "data-driven site the agent can redesign itself — template changes are validated and fall back automatically if broken"],
+        ],
+        tech: ["Claude (Anthropic)", "LLM Agents", "MongoDB Atlas Vector Search", "Python", "GitHub Actions", "JavaScript / SVG"],
+        links: [
+            { label: "open live dashboard", href: "https://kubaman9.github.io/portfolio/bet/#/today" },
+            { label: "view pipeline code", href: "https://github.com/kubaman9/portfolio/tree/main/tools" },
+        ],
+        note: "Research and analytics project; tracks hypothetical units, not financial advice.",
+    },
+    {
         name: "ironlog",
         title: "IronLog + IronLogAPI",
         year: "2026",
@@ -91,13 +115,17 @@ export const Projects = () => {
                         {featured.map((project) => (
                             <div
                                 key={project.name}
-                                className="term-window transition-all hover:-translate-y-1 flex flex-col"
+                                className={"term-window transition-all hover:-translate-y-1 flex flex-col" + (project.spotlight ? " md:col-span-2" : "")}
+                                style={project.spotlight ? { boxShadow: "0 0 0 1px var(--term-green), 0 0 28px rgba(74, 222, 128, 0.18)" } : undefined}
                             >
                                 <div className="term-titlebar">
                                     <span className="term-dot" style={{ background: "#f87171" }} />
                                     <span className="term-dot" style={{ background: "#fbbf24" }} />
                                     <span className="term-dot" style={{ background: "#4ade80" }} />
-                                    <span className="ml-2">{project.name}.sh — {project.year}</span>
+                                    <span className="ml-2 min-w-0 truncate">{project.name}.sh — {project.year}</span>
+                                    {project.spotlight && (
+                                        <span className="ml-auto term-tag shrink-0 whitespace-nowrap" style={{ color: "var(--term-amber)" }}>featured · AI</span>
+                                    )}
                                 </div>
 
                                 <div className="p-5 sm:p-6 flex flex-col flex-1 text-sm sm:text-base">
@@ -108,19 +136,42 @@ export const Projects = () => {
                                         <span className="term-comment">&gt; </span>
                                         {project.description}
                                     </p>
+                                    {project.highlights && (
+                                        <div className="mb-4">
+                                            <p className="term-comment text-xs mb-2"># how the AI is built and used</p>
+                                            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2 text-sm leading-relaxed">
+                                                {project.highlights.map(([head, body]) => (
+                                                    <li key={head} className="term-output">
+                                                        <span style={{ color: "var(--term-green)" }}>▸ {head}:</span> {body}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                     <div className="flex flex-wrap gap-2 mb-4">
                                         {project.tech.map((tech) => (
                                             <span key={tech} className="term-tag">{tech}</span>
                                         ))}
                                     </div>
-                                    <a
-                                        href={project.link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="term-link text-sm"
-                                    >
-                                        $ git clone {project.link.replace("https://", "")}.git
-                                    </a>
+                                    {project.links ? (
+                                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-1">
+                                            {project.links.map((l) => (
+                                                <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className="term-link text-sm">
+                                                    $ {l.label} →
+                                                </a>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <a
+                                            href={project.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="term-link text-sm"
+                                        >
+                                            $ git clone {project.link.replace("https://", "")}.git
+                                        </a>
+                                    )}
+                                    {project.note && <p className="term-comment text-xs mt-3"># {project.note}</p>}
                                 </div>
                             </div>
                         ))}

@@ -227,6 +227,9 @@ body {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.7s ease, transform 0.7s ease;
+  /* flex child of each section: allow it to shrink so wide content (tables) scrolls inside instead of widening the page */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .reveal.visible {

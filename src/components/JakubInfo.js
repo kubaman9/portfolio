@@ -11,6 +11,7 @@ CANDIDATE FACTS (authoritative)
 • Roles targeted: full-time Software Engineering roles starting after graduation (2027), plus SWE / AI-adjacent internships in the meantime. (Motivation: efficiency, innovation, teamwork.)
 
 PROJECTS (public on GitHub: kubaman9)
+• Kubaman Ledger (2026, featured AI project) — an autonomous AI sports-analytics agent system. A daily Claude (Sonnet) agent researches the slate, prices markets starting from the de-vigged market probability, logs reasoned picks to MongoDB and publishes a live dashboard (kubaman9.github.io/portfolio/bet); a weekly Claude (Opus) agent reviews performance and updates a tighten-only rules playbook. Uses RAG via MongoDB Atlas Vector Search (Voyage embeddings) to retrieve past lessons per pick, subagents to keep context and cost down, a Brier-score test of whether the model's adjustments beat the market, and a deterministic Python/GitHub Actions pipeline that re-grades the agent's work from ESPN box scores (it caught a real misgrade). Research/analytics only — tracks hypothetical units, not financial advice.
 • IronLog + IronLogAPI (2026) — full-stack lift-tracking web app: TypeScript frontend backed by a custom REST API he built from scratch.
 • WatchNext (2026) — JavaScript web app for tracking movies/shows and deciding what to watch next; his latest active project.
 • MMA Predictor (2026) — Python project predicting MMA fight outcomes, combining his martial arts background with data-driven prediction.
