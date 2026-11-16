@@ -1,0 +1,77 @@
+name: Publish games page
+
+# /games is a static page (public/games/index.html) that reads games.json.
+# - The weekly scout (tools/games/AGENT.md) pushes an updated games.json to
+#   claude/games-data. This copies it to gh-pages/games/ (live) and onto main.
+# - A push to main that touches public/games/ copies the whole folder to
+#   gh-pages/games/, so page edits go live without a full `npm run deploy`.
+
+on:
+  push:
+    branches: [main, claude/games-data]
+    paths: ["public/games/**", "tools/games/**", ".github/workflows/publish-games.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-games
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: source
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate games.json
+        working-directory: source
+        run: python3 tools/games/validate.py public/games/games.json --check-links
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish to gh-pages/games
+        working-directory: source
+        run: |
+          set -euo pipefail
+          SRC="$(pwd)/public/games"
+          git fetch -q origin gh-pages:gh-pages
+          git worktree add -q ../ghpages gh-pages
+          cd ../ghpages
+          mkdir -p games
+          if [ "${{ github.ref_name }}" = "claude/games-data" ]; then
+            # the scout only changes the data; keep the page from main
+            cp "$SRC/games.json" games/games.json
+            [ -f games/index.html ] || cp "$SRC/index.html" games/index.html
+          else
+            cp -r "$SRC/." games/
+          fi
+          git add games
+          if git diff --cached --quiet; then echo "gh-pages unchanged"; exit 0; fi
+          git commit -qm "games: publish ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          for i in 1 2 3; do git pull -q --rebase origin gh-pages && git push -q origin gh-pages && break; sleep 5; done
+
+      - name: Mirror games.json onto main
+        if: github.ref_name == 'claude/games-data'
+        working-directory: source
+        run: |
+          set -euo pipefail
+          SRC="$(pwd)/public/games/games.json"
+          git fetch -q origin main:main
+          git worktree add -q ../mainwt main
+          cd ../mainwt
+          cp "$SRC" public/games/games.json
+          git add public/games/games.json
+          if git diff --cached --quiet; then echo "main unchanged"; exit 0; fi
+          git commit -qm "games: mirror weekly scout picks into public/games"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 5; done
