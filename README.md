@@ -31,3 +31,11 @@ npm run deploy   # publish to GitHub Pages
 
 To use your own Gemini API key for the chatbot, set `VITE_GEMINI_API_KEY` in a `.env`
 file at the project root.
+
+## /games
+
+`public/games/` is a standalone page (served at `/portfolio/games/`) with links to
+daily browser games. The list is `public/games/games.json`. Every week a scheduled
+Claude run follows `tools/games/AGENT.md`, adds new finds, and pushes them to
+`claude/games-data`. The `Publish games page` workflow then validates the file and
+puts it live.
