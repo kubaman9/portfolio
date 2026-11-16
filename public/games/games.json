@@ -1,31 +1,336 @@
 {
-  "updated": "2026-11-16",
-  "taste": "Quick daily browser games: name-the-top-10 lists, rare-answer trivia, sports roster/draft builders, geography connections, and list-style Sporcle quizzes.",
-  "games": [
-    {"id": "daily-tens", "name": "Daily Tens", "url": "https://dailytens.com/", "blurb": "Name all ten entries on today's top-10 list before 5 misses.", "tags": ["top10", "daily"], "favorite": true, "added": "2026-11-16", "source": "seed"},
-    {"id": "krillion", "name": "Krillion", "url": "https://krillion.io/", "blurb": "7 prompts a day. Rare answers sink you deeper.", "tags": ["rarity", "daily"], "favorite": true, "added": "2026-11-16", "source": "seed"},
-    {"id": "moonshot", "name": "Moonshot", "url": "https://moonshotdailygame.com/", "blurb": "Name the common answers, then the blue-moon ones, then climb The Ladder.", "tags": ["rarity", "daily"], "favorite": true, "added": "2026-11-16", "source": "seed"},
-    {"id": "82-0", "name": "82-0", "url": "https://82-0.com/", "blurb": "Spin a team and decade, draft NBA legends, try to go undefeated.", "tags": ["draft", "sports"], "favorite": true, "added": "2026-11-16", "source": "seed"},
-    {"id": "20-0", "name": "20-0", "url": "https://www.20-0.com/", "blurb": "The football version, plus 162-0, 100-0, 8-0 and more on the same site.", "tags": ["draft", "sports"], "favorite": true, "added": "2026-11-16", "source": "seed"},
-    {"id": "world-connections", "name": "World Connections", "url": "https://www.google.com/search?q=World+Connections+daily+game", "blurb": "Connections, but geography.", "tags": ["geo", "connections", "daily"], "favorite": true, "needsLink": true, "added": "2026-11-16", "source": "seed"},
-    {"id": "psnn-drafts", "name": "PSNN Fantasy Drafts", "url": "https://www.google.com/search?q=PSNN+fantasy+draft+game", "blurb": "Fantasy draft games.", "tags": ["draft", "sports"], "favorite": true, "needsLink": true, "added": "2026-11-16", "source": "seed"},
-
-    {"id": "sporcle-top10-big4", "name": "Top 10s: Big 4 Sports", "url": "https://www.sporcle.com/games/jishimsy/top_10_big_4", "blurb": "Sporcle top-10 lists across the NFL, NBA, MLB and NHL.", "tags": ["sporcle", "top10", "sports"], "added": "2026-11-16", "source": "seed"},
-    {"id": "sporcle-nba-scorers", "name": "NBA All-Time Scorers", "url": "https://www.sporcle.com/games/ESPN/nba_alltimescorers", "blurb": "Name the NBA's all-time leading scorers.", "tags": ["sporcle", "top10", "sports"], "added": "2026-11-16", "source": "seed"},
-    {"id": "sporcle-nba-top5", "name": "NBA Top 5s", "url": "https://www.sporcle.com/games/Alexthegreat/NBA_Top5", "blurb": "Top-5 lists from NBA history.", "tags": ["sporcle", "top10", "sports"], "added": "2026-11-16", "source": "seed"},
-    {"id": "sporcle-sports-today", "name": "Sporcle: Popular Sports Today", "url": "https://www.sporcle.com/popular/today/sports", "blurb": "Today's most-played sports quizzes, for when you want a fresh one.", "tags": ["sporcle", "sports"], "added": "2026-11-16", "source": "seed"},
-
-    {"id": "name-ten", "name": "NameTen", "url": "https://matchiq.online/nameten", "blurb": "A daily hidden sports top ten. Correct guesses go into their ranked slots.", "tags": ["top10", "sports", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "Daily Tens, but all sports."},
-    {"id": "top-answer-club", "name": "Top Answer Club", "url": "https://www.topanswerclub.com", "blurb": "Type the six most popular survey answers before you lose 3 lives.", "tags": ["top10", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "Same name-the-list feeling as Daily Tens."},
-    {"id": "centumth", "name": "Centumth", "url": "https://www.centumth.com/", "blurb": "Today's Top 100 list: guess the items closest to #100.", "tags": ["top10", "rarity", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "A top-list game crossed with Krillion's go-obscure scoring."},
-    {"id": "crowdle", "name": "Crowdle", "url": "https://pzlgames.com/games/crowdle/", "blurb": "Match the crowd's top four answers to the daily prompt, ranked.", "tags": ["top10", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "A ranked list you fill from the crowd's answers."},
-    {"id": "seldom", "name": "Seldom", "url": "https://www.playseldom.com", "blurb": "Give five valid answers that are as rare as possible.", "tags": ["rarity", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "Krillion-style rare-answer scoring."},
-    {"id": "rarish", "name": "Rarish", "url": "https://rarish.app/", "blurb": "One safe answer and one deep cut, in 60 seconds.", "tags": ["rarity", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "Plays like Moonshot's common-vs-rare rounds."},
-    {"id": "majority", "name": "Majority", "url": "https://www.majoritygame.com/", "blurb": "Five prompts. Guess what most players will say.", "tags": ["rarity", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "The flip side of Krillion: go common, not rare."},
-    {"id": "immaculate-grid-football", "name": "Immaculate Grid: Football", "url": "https://www.immaculategrid.com/football", "blurb": "Fill 9 squares with players who match both the row and the column.", "tags": ["sports", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "Sports-knowledge recall, like the draft games."},
-    {"id": "hundo", "name": "HUNDO", "url": "https://mayhex.gg/hundo/", "blurb": "Wager cards from ace to ten on ten trivia questions.", "tags": ["daily"], "added": "2026-11-16", "source": "playlin.io", "why": "Ten questions with a strategy layer on top."},
-    {"id": "geodle-connections", "name": "GeoDle Connections", "url": "https://geodle.org/connections", "blurb": "Sort 16 countries into 4 hidden geographic groups.", "tags": ["geo", "connections", "daily"], "added": "2026-11-16", "source": "web search", "why": "Geography Connections, like World Connections."},
-    {"id": "country-connections", "name": "Country Connections", "url": "https://www.geofungames.com/games/country-connections", "blurb": "16 countries shown as flags, outlines, capitals or names. Find the 4 groups.", "tags": ["geo", "connections", "daily"], "added": "2026-11-16", "source": "web search", "why": "Another geography Connections."},
-    {"id": "fermi", "name": "Fermi", "url": "https://fermi.gg/", "blurb": "Three estimation questions. Score by how close your guess is.", "tags": ["estimate", "daily"], "added": "2026-11-16", "source": "playlin.io", "why": "A good-guess game for a break from recall games."}
-  ]
+ "updated": "2026-11-16",
+ "taste": "Quick daily browser games: name-the-top-10 lists, rare-answer trivia, sports roster/draft builders, geography connections, and list-style Sporcle quizzes.",
+ "games": [
+  {
+   "id": "daily-tens",
+   "name": "Daily Tens",
+   "url": "https://dailytens.com/",
+   "blurb": "Name all ten entries on today's top-10 list before 5 misses.",
+   "tags": [
+    "top10",
+    "daily"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "krillion",
+   "name": "Krillion",
+   "url": "https://krillion.io/",
+   "blurb": "7 prompts a day. Rare answers sink you deeper.",
+   "tags": [
+    "rarity",
+    "daily"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "moonshot",
+   "name": "Moonshot",
+   "url": "https://moonshotdailygame.com/",
+   "blurb": "Name the common answers, then the blue-moon ones, then climb The Ladder.",
+   "tags": [
+    "rarity",
+    "daily"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "82-0",
+   "name": "82-0",
+   "url": "https://82-0.com/",
+   "blurb": "Spin a team and decade, draft NBA legends, try to go undefeated.",
+   "tags": [
+    "draft",
+    "sports"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "20-0",
+   "name": "20-0",
+   "url": "https://www.20-0.com/",
+   "blurb": "The football version, plus 162-0, 100-0, 8-0 and more on the same site.",
+   "tags": [
+    "draft",
+    "sports"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "world-connections",
+   "name": "World Connections",
+   "url": "https://www.google.com/search?q=World+Connections+daily+game",
+   "blurb": "Connections, but geography.",
+   "tags": [
+    "geo",
+    "connections",
+    "daily"
+   ],
+   "favorite": true,
+   "needsLink": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "psnn-drafts",
+   "name": "PSNN Fantasy Drafts",
+   "url": "https://www.google.com/search?q=PSNN+fantasy+draft+game",
+   "blurb": "Fantasy draft games.",
+   "tags": [
+    "draft",
+    "sports"
+   ],
+   "favorite": true,
+   "needsLink": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "magnitudle",
+   "name": "Magnitudle",
+   "url": "https://magnitudle.com/",
+   "blurb": "Estimation games: Size It Up, Weigh It Up, Weekly 1K, Survival and more.",
+   "tags": [
+    "estimate",
+    "daily"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "cutle",
+   "name": "Cutle",
+   "url": "https://www.cutle.io/",
+   "blurb": "Cut the shape in half with one line. How close to 50/50 can you get?",
+   "tags": [
+    "estimate",
+    "daily"
+   ],
+   "favorite": true,
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "sporcle-top10-big4",
+   "name": "Top 10s: Big 4 Sports",
+   "url": "https://www.sporcle.com/games/jishimsy/top_10_big_4",
+   "blurb": "Sporcle top-10 lists across the NFL, NBA, MLB and NHL.",
+   "tags": [
+    "sporcle",
+    "top10",
+    "sports"
+   ],
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "sporcle-nba-scorers",
+   "name": "NBA All-Time Scorers",
+   "url": "https://www.sporcle.com/games/ESPN/nba_alltimescorers",
+   "blurb": "Name the NBA's all-time leading scorers.",
+   "tags": [
+    "sporcle",
+    "top10",
+    "sports"
+   ],
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "sporcle-nba-top5",
+   "name": "NBA Top 5s",
+   "url": "https://www.sporcle.com/games/Alexthegreat/NBA_Top5",
+   "blurb": "Top-5 lists from NBA history.",
+   "tags": [
+    "sporcle",
+    "top10",
+    "sports"
+   ],
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "sporcle-sports-today",
+   "name": "Sporcle: Popular Sports Today",
+   "url": "https://www.sporcle.com/popular/today/sports",
+   "blurb": "Today's most-played sports quizzes, for when you want a fresh one.",
+   "tags": [
+    "sporcle",
+    "sports"
+   ],
+   "added": "2026-11-16",
+   "source": "seed"
+  },
+  {
+   "id": "name-ten",
+   "name": "NameTen",
+   "url": "https://matchiq.online/nameten",
+   "blurb": "A daily hidden sports top ten. Correct guesses go into their ranked slots.",
+   "tags": [
+    "top10",
+    "sports",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "Daily Tens, but all sports."
+  },
+  {
+   "id": "top-answer-club",
+   "name": "Top Answer Club",
+   "url": "https://www.topanswerclub.com",
+   "blurb": "Type the six most popular survey answers before you lose 3 lives.",
+   "tags": [
+    "top10",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "Same name-the-list feeling as Daily Tens."
+  },
+  {
+   "id": "centumth",
+   "name": "Centumth",
+   "url": "https://www.centumth.com/",
+   "blurb": "Today's Top 100 list: guess the items closest to #100.",
+   "tags": [
+    "top10",
+    "rarity",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "A top-list game crossed with Krillion's go-obscure scoring."
+  },
+  {
+   "id": "crowdle",
+   "name": "Crowdle",
+   "url": "https://pzlgames.com/games/crowdle/",
+   "blurb": "Match the crowd's top four answers to the daily prompt, ranked.",
+   "tags": [
+    "top10",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "A ranked list you fill from the crowd's answers."
+  },
+  {
+   "id": "seldom",
+   "name": "Seldom",
+   "url": "https://www.playseldom.com",
+   "blurb": "Give five valid answers that are as rare as possible.",
+   "tags": [
+    "rarity",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "Krillion-style rare-answer scoring."
+  },
+  {
+   "id": "rarish",
+   "name": "Rarish",
+   "url": "https://rarish.app/",
+   "blurb": "One safe answer and one deep cut, in 60 seconds.",
+   "tags": [
+    "rarity",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "Plays like Moonshot's common-vs-rare rounds."
+  },
+  {
+   "id": "majority",
+   "name": "Majority",
+   "url": "https://www.majoritygame.com/",
+   "blurb": "Five prompts. Guess what most players will say.",
+   "tags": [
+    "rarity",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "The flip side of Krillion: go common, not rare."
+  },
+  {
+   "id": "immaculate-grid-football",
+   "name": "Immaculate Grid: Football",
+   "url": "https://www.immaculategrid.com/football",
+   "blurb": "Fill 9 squares with players who match both the row and the column.",
+   "tags": [
+    "sports",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "Sports-knowledge recall, like the draft games."
+  },
+  {
+   "id": "hundo",
+   "name": "HUNDO",
+   "url": "https://mayhex.gg/hundo/",
+   "blurb": "Wager cards from ace to ten on ten trivia questions.",
+   "tags": [
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "Ten questions with a strategy layer on top."
+  },
+  {
+   "id": "geodle-connections",
+   "name": "GeoDle Connections",
+   "url": "https://geodle.org/connections",
+   "blurb": "Sort 16 countries into 4 hidden geographic groups.",
+   "tags": [
+    "geo",
+    "connections",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "web search",
+   "why": "Geography Connections, like World Connections."
+  },
+  {
+   "id": "country-connections",
+   "name": "Country Connections",
+   "url": "https://www.geofungames.com/games/country-connections",
+   "blurb": "16 countries shown as flags, outlines, capitals or names. Find the 4 groups.",
+   "tags": [
+    "geo",
+    "connections",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "web search",
+   "why": "Another geography Connections."
+  },
+  {
+   "id": "fermi",
+   "name": "Fermi",
+   "url": "https://fermi.gg/",
+   "blurb": "Three estimation questions. Score by how close your guess is.",
+   "tags": [
+    "estimate",
+    "daily"
+   ],
+   "added": "2026-11-16",
+   "source": "playlin.io",
+   "why": "A good-guess game for a break from recall games."
+  }
+ ]
 }
