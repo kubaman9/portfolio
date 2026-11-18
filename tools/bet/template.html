@@ -443,6 +443,34 @@ details.passes[open]>summary:after{content:"－"}
   .hstat .v{font-size:17px}
   .gh .tm{font-size:15.5px}
 }
+/* ---------- bet strength: stronger = louder ---------- */
+.bx.s5,.bx.s4{border-color:rgba(25,230,140,.55);background:linear-gradient(135deg,rgba(25,230,140,.13),#0a1016 60%);box-shadow:0 0 0 1px rgba(25,230,140,.25),0 12px 34px -18px rgba(25,230,140,.7)}
+.bx.s5 .odds,.bx.s4 .odds{background:linear-gradient(135deg,#19e68c,#10b56d);color:#03140b;border-color:transparent}
+.bx.s5 .ttl,.bx.s4 .ttl{font-size:16px}
+.bx.s3{border-color:rgba(25,230,140,.32)}
+.bx.s3 .odds{border-color:rgba(25,230,140,.45);color:var(--green)}
+.bx.s1{opacity:.74}
+.bx.s1:hover,.bx.s1.on{opacity:1}
+.bx.s1 .ttl{font-size:13.5px;font-weight:600}
+.sbadge{font:800 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;border-radius:6px;padding:3px 7px}
+.sbadge.best{background:linear-gradient(90deg,#19e68c,#7dd3fc);color:#03140b}
+.sbadge.edge{background:var(--greenbg);color:var(--green);border:1px solid rgba(25,230,140,.35)}
+.sbadge.low{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--line2)}
+.sdots{display:inline-flex;gap:3px;align-items:center}
+.sdots i{width:7px;height:7px;border-radius:2px;background:rgba(255,255,255,.1)}
+.sdots i.on{background:var(--green)}
+.sdots.l1 i.on,.sdots.l2 i.on{background:#f5b518}
+.tops{border-radius:18px;padding:14px;border:1px solid rgba(25,230,140,.35);background:radial-gradient(120% 140% at 0% 0%,rgba(25,230,140,.16),transparent 60%),#0b1118;animation:rise .35s ease both}
+.tops h3{margin:0 0 10px;font-size:15px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tops h3 small{font:600 11px var(--mono);color:var(--muted)}
+.tp{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border-radius:12px;background:rgba(7,11,16,.55);border:1px solid rgba(255,255,255,.06);cursor:pointer;margin-top:7px}
+.tp:first-of-type{margin-top:0}
+.tp .n{font:800 18px var(--mono);color:var(--green);width:22px;text-align:center}
+.tp .w{font-weight:700;font-size:13.5px;line-height:1.3}
+.tp .m{font-size:11.5px;color:var(--muted);margin-top:1px}
+.tp .r{text-align:right;font:800 13px var(--mono)}
+.tp .r small{display:block;font:700 10.5px var(--mono)}
+.tops .none{font-size:12.5px;color:#c3cfdb;line-height:1.45}
 @media (max-width:1180px){
   .detail-card{display:none}
   .prow.sel+.pinline{display:block;padding:4px 6px 14px 52px;border-bottom:1px solid var(--line)}
@@ -1110,7 +1138,8 @@ function buildBoard(d, picks, slips){
     g.bets.push({ k: "s" + i, kind: "slip", p: s }); if (s.marquee === true || isMarq(s)) g.marquee = true;
   });
   games.forEach(function(g){ if (/indiana|hoosier|\bIU\b/.test(g.name) || g.bets.some(function(b){ return isIU(b.p); })) { g.iu = true; g.marquee = true; } g.units = 0; g.bets.forEach(function(b){ g.units += num(b.p.stake_units) || 0; }); });
-  games.sort(function(a, b){ return (!!b.bets.length - !!a.bets.length) || (b.marquee - a.marquee) || (tmin(a.time) - tmin(b.time)) || (b.units - a.units); });
+  games.forEach(function(g){ g.best = 0; g.bets.forEach(function(b){ g.best = Math.max(g.best, strength(b.p, b.kind === "slip")); }); });
+  games.sort(function(a, b){ return (!!b.bets.length - !!a.bets.length) || (b.marquee - a.marquee) || (b.best - a.best) || (tmin(a.time) - tmin(b.time)) || (b.units - a.units); });
   return { games: games, rest: rest };
 }
 function betLine(b, open, d){
@@ -1120,9 +1149,11 @@ function betLine(b, open, d){
   var grade = p.pick_grade || "", slip = b.kind === "slip";
   var bev = slip ? num(String(p.be || "").replace("%", "")) : be(o), conf = num(p.confidence);
   if (slip && bev == null && pa != null) bev = be(pa);
-  var model = conf != null ? conf : (bev != null && ev != null ? bev * (1 + ev / 100) : null);
+  /* the win chance the EV was priced from (so bar, EV chip and badge agree); stated confidence only when no EV */
+  var model = num(p.model_prob) != null ? (num(p.model_prob) <= 1 ? 100 * num(p.model_prob) : num(p.model_prob)) : (bev != null && ev != null ? bev * (1 + ev / 100) : conf);
   var ty = slip ? '<span class="ty par">' + esc(slipType(p)[1]) + "</span>" : /prop/i.test(p.bet_type || "") ? '<span class="ty prop">Prop</span>' : '<span class="ty">' + esc(/moneyline/i.test(p.bet_type || "") ? "Moneyline" : /spread|run line/i.test(p.bet_type || "") ? "Spread" : /total/i.test(p.bet_type || "") ? "Total" : "Single") + "</span>";
-  var tags = ty + q(p.anchor_quality) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "");
+  var sg = strength(p, slip);
+  var tags = sbadge(sg) + ty + q(p.anchor_quality) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "");
   var body;
   if (slip) { var ld = p.legs_detail || [], fair = legFair(p, d); var legs = ld.length ? ld.map(function(l){ var sel = plain(l.selection || ""), key = sel.split(/\s+(?:over|under)\b/i)[0].trim().split(/\s+/).pop().toLowerCase(), fp = num(l.fair_prob) != null ? num(l.fair_prob) : fair[key]; if (fp != null && fp <= 1) fp *= 100; return [sel, (l.price_american != null ? fO(num(l.price_american)) : "") + (fp != null ? " · " + fp.toFixed(0) + "%" : "")]; }) : legsOf(p).map(function(l){ return [l, ""]; }); body = '<ul class="lgs">' + legs.map(function(l){ return "<li><span>" + esc(l[0]) + '</span><span class="lp">' + esc(l[1]) + "</span></li>"; }).join("") + "</ul>"; }
   else body = '<div class="ttl">' + esc(shortB(p.bet, p.matchup)) + "</div>";
@@ -1131,7 +1162,7 @@ function betLine(b, open, d){
   var bar = model != null ? '<div class="cbar' + (good ? " pos" : "") + '" title="model ' + model.toFixed(1) + "% vs break-even " + (bev != null ? bev.toFixed(1) : "?") + '%"><i style="width:' + Math.max(2, Math.min(100, model)).toFixed(1) + '%"></i>' + (bev != null ? '<b style="left:calc(' + Math.min(100, bev).toFixed(1) + '% - 1px)"></b>' : "") + "</div>" : "";
   return '<div class="br2" data-b="' + b.k + '" tabindex="0" aria-expanded="' + open + '"><div style="min-width:0"><div class="tg">' + tags + "</div>" + body + "</div>" +
     '<div class="rt"><div class="odds">' + (pa != null ? fO(pa) : esc(plain(p.price || "—"))) + '</div><div class="stk"><b>' + (st != null ? st + "u" : "—") + "</b>" + (win != null && r === "OPEN" ? " → " + win.toFixed(2) : "") + "</div>" + (r === "OPEN" ? "" : stat(r, p.units)) + "</div>" +
-    '<div class="ft">' + bar + (model != null ? '<span class="ftx"><span class="' + (good ? "pos" : "neg") + '">' + model.toFixed(1).replace(/\.0$/, "") + "%</span>" + (bev != null ? " vs " + bev.toFixed(0) + "% BE" : "") + "</span>" : "") + (ev != null ? '<span class="evc ' + (ev > 0.05 ? "pos" : ev < -0.05 ? "neg" : "z") + '">' + fP(ev) + " EV</span>" : "") + (p.book ? '<span class="bk2">' + esc(p.book) + "</span>" : "") + "</div></div>";
+    '<div class="ft">' + bar + (model != null ? '<span class="ftx"><span class="' + (good ? "pos" : "neg") + '">' + model.toFixed(1).replace(/\.0$/, "") + "%</span>" + (bev != null ? " vs " + bev.toFixed(0) + "% BE" : "") + "</span>" : "") + (ev != null ? '<span class="evc ' + (ev > 0.05 ? "pos" : ev < -0.05 ? "neg" : "z") + '">' + fP(ev) + " EV</span>" : "") + (p.book ? '<span class="bk2">' + esc(p.book) + "</span>" : "") + sdots(sg) + "</div></div>";
 }
 function betExpand(b, d){
   var p = b.p;
@@ -1139,6 +1170,33 @@ function betExpand(b, d){
   var o = odds(p), bv = be(o), conf = num(p.confidence), ev = num(p.ev_pct);
   var cell = function(v, l, c){ return '<div><div class="v ' + (c || "") + '">' + v + '</div><div class="l">' + l + "</div></div>"; };
   return '<div class="bexp"><div class="nums">' + cell(fO(o), "Odds") + cell(bv != null ? bv.toFixed(1) + "%" : "—", "Break-even") + cell(conf != null ? conf + "%" : "—", "Model", conf != null && bv != null ? (conf >= bv ? "pos" : "neg") : "") + cell(fP(ev), "EV", cls(ev)) + cell(num(p.stake_units) != null ? p.stake_units + "u" : "—", "Stake") + cell(esc(p.anchor_quality || "—"), "Anchor") + "</div>" + detail(p, true) + "</div>";
+}
+/* strength 1-5 from what the bet is worth: EV first, then model vs break-even; forced tickets cap at 2 */
+function strength(p, slip){
+  var ev = num(p.ev_pct), o = odds(p), pa = o != null ? o : num(p.price_american);
+  var bev = slip ? num(String(p.be || "").replace("%", "")) : be(o); if (bev == null && pa != null) bev = be(pa);
+  var conf = num(p.confidence), model = bev != null && ev != null ? bev * (1 + ev / 100) : conf;
+  var st = num(p.stake_units) || 0, gr = String(p.pick_grade || p.tier || "").toLowerCase(), s;
+  if (ev != null) s = ev >= 3 ? 5 : ev >= 1.5 ? 4 : ev > 0 ? 3 : ev > -3 ? 2 : 1;
+  else if (model != null && bev != null) { var g = model - bev; s = g >= 4 ? 5 : g >= 2 ? 4 : g > 0 ? 3 : g > -2 ? 2 : 1; }
+  else s = st >= 0.5 ? 3 : 2;
+  if (s < 5 && st >= 0.5 && (ev == null || ev >= 0)) s++;
+  if (/forced|volume|stretch/.test(gr) && s > 2) s = 2;
+  return s;
+}
+function sdots(s){ var h = '<span class="sdots l' + s + '" title="strength ' + s + ' of 5">'; for (var i = 1; i <= 5; i++) h += '<i class="' + (i <= s ? "on" : "") + '"></i>'; return h + "</span>"; }
+function sbadge(s){ return s >= 4 ? '<span class="sbadge best">Best bet</span>' : s === 3 ? '<span class="sbadge edge">Edge</span>' : s === 1 ? '<span class="sbadge low">Low confidence</span>' : ""; }
+function topPlays(B, d){
+  var all = []; B.games.forEach(function(g){ g.bets.forEach(function(b){ all.push({ b: b, g: g, s: strength(b.p, b.kind === "slip") }); }); });
+  all.sort(function(a, c){ return (c.s - a.s) || ((num(c.b.p.ev_pct) || -99) - (num(a.b.p.ev_pct) || -99)) || ((num(c.b.p.stake_units) || 0) - (num(a.b.p.stake_units) || 0)); });
+  var top = all.filter(function(x){ return x.s >= 3; }).slice(0, 3);
+  var lead = top.length ? top : all.slice(0, 1);
+  if (!all.length) return "";
+  return '<div class="tops"><h3>' + (top.length ? "Top plays" : "Best of a thin card") + "<small>" + (top.length ? top.length + " with an edge" : "nothing beats the market today") + "</small></h3>" +
+    (top.length ? "" : '<div class="none" style="margin-bottom:8px">No bet clears the vig against the sharp price, so every ticket is small. This is the least-bad one.</div>') +
+    lead.map(function(x, i){ var p = x.b.p, slip = x.b.kind === "slip", o = odds(p), pa = o != null ? o : num(p.price_american), ev = num(p.ev_pct);
+      var what = slip ? slipType(p)[1] + ": " + ((p.legs_detail || []).map(function(l){ return plain(l.selection || ""); }).join(" + ") || plain(p.legs || p.shape)) : shortB(p.bet, p.matchup);
+      return '<div class="tp" data-top="' + x.b.k + '"><div class="n">' + (i + 1) + '</div><div style="min-width:0"><div class="w">' + esc(what) + '</div><div class="m">' + esc(shortM(x.g.name)) + (x.g.time ? " · " + esc(x.g.time) : "") + " · " + sdots(x.s) + '</div></div><div class="r">' + (pa != null ? fO(pa) : "") + '<small class="' + cls(ev) + '">' + (ev != null ? fP(ev) + " EV" : "") + "</small><small class=\"mut\">" + (num(p.stake_units) != null ? p.stake_units + "u" : "") + "</small></div></div>"; }).join("") + "</div>";
 }
 function renderBoard(d, picks, slips){
   var B = buildBoard(d, picks, slips);
@@ -1154,7 +1212,7 @@ function renderBoard(d, picks, slips){
       '<div class="side2">' + (g.time ? '<div class="time">' + esc(String(g.time).replace(/\s*ET$/, "")) + "</div>" : "") + (g.units ? '<div class="amt">' + (Math.round(g.units * 100) / 100) + "u<small>" + g.bets.length + " BET" + (g.bets.length === 1 ? "" : "S") + "</small></div>" : "") + "</div></div>" +
       (pr.length ? '<div class="gp"><span class="k">What I priced</span>' + pr.map(esc).join(" · ") + "</div>" : "") +
       (hoo ? '<div class="gp hoo clamp" data-clamp><span class="k">Hoosier corner · tap to expand</span>' + md(hoo) + "</div>" : "") +
-      '<div class="bets">' + g.bets.map(function(b){ var on = state.open === b.k; return '<div class="bx' + (on ? " on" : "") + '">' + betLine(b, on, d) + (on ? betExpand(b, d) : "") + "</div>"; }).join("") + "</div>" +
+      '<div class="bets">' + g.bets.slice().sort(function(a, c){ return strength(c.p, c.kind === "slip") - strength(a.p, a.kind === "slip"); }).map(function(b){ var on = state.open === b.k; return '<div class="bx s' + strength(b.p, b.kind === "slip") + (on ? " on" : "") + '">' + betLine(b, on, d) + (on ? betExpand(b, d) : "") + "</div>"; }).join("") + "</div>" +
       (g.marquee && g.bets.length && !hasSlip ? '<div class="gnc">⚠ No companion parlay on this marquee game</div>' : "") + "</div>";
   };
   var unchk = (d.leagues_unchecked || []).map(function(x){ return typeof x === "string" ? x : plain(x.league || x.name || ""); }).filter(Boolean);
@@ -1163,7 +1221,7 @@ function renderBoard(d, picks, slips){
     nobet.map(function(g){ var pr = g.priced.map(function(x){ return [x.line, x.read].filter(Boolean).map(plain).join(" — "); }).join(" · "); return '<div class="prow2"><div class="t">' + (g.marquee ? '<span class="star">★</span>' : "") + badge(g.sport || "Multi", "xs") + " " + esc(g.name) + (g.miss ? ' <span class="neg" style="font-size:11px">missed</span>' : "") + (g.time ? ' <span class="mut" style="font-weight:400">' + esc(g.time) + "</span>" : "") + '</div><div class="r2">' + esc(pr || "No bet.") + "</div></div>"; }).join("") +
     rest.map(function(x){ return '<div class="prow2"><div class="r2">' + esc(x) + "</div></div>"; }).join("") + "</details>" : "";
   var miss = unchk.length ? '<div class="unchk"><b>Not checked</b>' + esc(unchk.join(" · ")) + "</div>" : "";
-  return '<div id="picks" class="board2"><div class="sect"><h2>' + (DAYS[LATEST] === d ? "Today’s <span>board</span>" : "The <span>board</span>") + '</h2><span class="sub">tap any bet for the full read</span></div>' +
+  return '<div id="picks" class="board2"><div class="sect"><h2>' + (DAYS[LATEST] === d ? "Today’s <span>board</span>" : "The <span>board</span>") + '</h2><span class="sub">tap any bet for the full read</span></div>' + (state.sport === "All" ? topPlays(B, d) : "") +
     (bet.length ? bet.map(block).join("") : '<div class="card empty">No bets' + (state.sport !== "All" ? " in " + esc(state.sport) : "") + " on this card.</div>") + passes + miss + "</div>";
 }
 function hero2(d, date, picks, slips){
@@ -1391,6 +1449,8 @@ function render(){
 var lastRoute = "";
 window.addEventListener("hashchange", function(){ var h = location.hash; if (h === "#picks") return; if (h !== lastRoute) { state.sel = -1; state.exp = false; state.open = null; state.passOpen = false; state.tab = "analysis"; state.sport = "All"; state.wire = "All"; } lastRoute = h; render(); window.scrollTo(0, 0); });
 document.addEventListener("click", function(e){
+  var tp = e.target.closest("[data-top]");
+  if (tp) { var tk = tp.getAttribute("data-top"); state.open = tk; state.tab = "analysis"; render(); var tb = document.querySelector('[data-b="' + tk + '"]'); if (tb) tb.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   var bt = e.target.closest("[data-b]");
   if (bt && !e.target.closest(".bexp")) { var k = bt.getAttribute("data-b"); state.open = state.open === k ? null : k; state.tab = "analysis"; var pd = document.getElementById("passes"); state.passOpen = !!(pd && pd.open); render(); var nb = document.querySelector('[data-b="' + k + '"]'); if (nb && state.open) nb.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
   var t = e.target.closest("[data-i],[data-tab],[data-sport],[data-brk],[data-h],[data-go],[data-wire],[data-scroll],#more,[data-clamp]");
