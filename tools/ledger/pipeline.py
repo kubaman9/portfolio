@@ -12,6 +12,9 @@ grade    OPEN picks whose games are final -> result, units, legs, final_score,
 sync     grades the daily run wrote to picks itself -> that day's dashboard_days rows.
 tipsters outside cappers' logged picks (tipster_picks) graded and priced the same way;
          per-tipster record and fair-close value into tipsters.stats.
+watch    0u watch picks (watch_picks) graded at a notional 1u, mirrored to that day's
+         dashboard_days.watch[]; paper scoreboard in watch_stats/current. Never in the record.
+patterns player_patterns history checks matched to their graded prop (single or slip leg).
 close    ESPN closing line + CLV for graded single game-level picks with clv null.
 audit    re-grade picks graded in the last 7 days; disagreements go to grade_audit
          (the daily run must apply them) -- nothing graded is silently rewritten.
@@ -367,6 +370,108 @@ def step_tipsters(db):
     log(f"tipsters: {graded} outside picks graded, {priced} priced at the close, {n_tip} tipster scoreboards updated")
 
 
+def step_watch(db):
+    """Watch picks (constitution V18.5): the daily run's no-edge reads on marquee games and
+    quota fills, logged at 0u in watch_picks instead of staked. Graded here at a notional
+    1u ("paper") so their record is measured, but they never touch picks, the record or
+    the units. Grades are mirrored into that day's dashboard_days.watch[] row, and a
+    scoreboard goes to watch_stats/current for the weekly review."""
+    graded = priced = 0
+    today = NOW.date().isoformat()
+    for w in db.watch_picks.find({"result": "OPEN", "date": {"$lte": today}}):
+        try:
+            upd = grade_pick(dict(w, stake_units=1))
+        except Exception as e:
+            log(f"  watch grade error on {w.get('bet')!r}: {type(e).__name__}")
+            continue
+        if upd and "result" in upd:
+            upd.pop("_espn", None)
+            upd["paper_units"] = upd.pop("units", None)
+            upd.update({"graded_by": "pipeline", "graded_at": ISO})
+            db.watch_picks.update_one({"_id": w["_id"]}, {"$set": upd})
+            graded += 1
+            day = db.dashboard_days.find_one({"_id": w.get("date")}, {"watch": 1})
+            rows = (day or {}).get("watch") or []
+            hit = False
+            for r in rows:
+                if norm(r.get("bet")) == norm(w.get("bet")) and r.get("result") != upd["result"]:
+                    r["result"], r["paper_units"], hit = upd["result"], upd["paper_units"], True
+                    if upd.get("legs") and r.get("legs_detail"):
+                        for ld, leg in zip(r["legs_detail"], upd["legs"]):
+                            if leg.get("status"):
+                                ld["status"] = leg["status"]
+            if hit:
+                db.dashboard_days.update_one({"_id": day["_id"]}, {"$set": {"watch": rows}})
+        elif w.get("date", "") < (NOW - dt.timedelta(days=4)).date().isoformat():
+            db.watch_picks.update_one({"_id": w["_id"]}, {"$set": {"result": "UNGRADED", "graded_at": ISO}})
+    for w in db.watch_picks.find({"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "legs": {"$exists": False},
+                                  "xev_tried": {"$ne": True}}):
+        spec = parse(w.get("bet"), None, w.get("bet_type"), w.get("sport"))
+        upd = {"xev_tried": True}
+        if spec and spec["kind"] != "prop":
+            found = find_event(w.get("sport"), w.get("date"), w.get("matchup")) or \
+                event_for_key(w.get("sport"), w.get("game_key"), w.get("bet"))
+            if found:
+                try:
+                    c = closing_for(dict(w, stake_units=1), found[0], found[1], found[2]["id"], competitors(found[2]))
+                except Exception:
+                    c = None
+                for k in ("clv", "xev", "close_fair_prob", "closing_line"):
+                    if c and k in c:
+                        upd[k] = c[k]
+        db.watch_picks.update_one({"_id": w["_id"]}, {"$set": upd})
+        priced += "xev" in upd
+    rows = list(db.watch_picks.find({"result": {"$in": ["WIN", "LOSS", "PUSH"]}},
+                                    {"result": 1, "paper_units": 1, "xev": 1, "clv": 1, "reason": 1, "sport": 1}))
+    def board(items):
+        W = sum(r["result"] == "WIN" for r in items)
+        L = sum(r["result"] == "LOSS" for r in items)
+        xs = [r["xev"] for r in items if isinstance(r.get("xev"), (int, float))]
+        cs = [r["clv"] for r in items if isinstance(r.get("clv"), (int, float))]
+        return {"n": W + L, "W": W, "L": L, "paper_units": round(sum(r.get("paper_units") or 0 for r in items), 3),
+                "n_xev": len(xs), "exp_roi": round(sum(xs) / len(xs), 2) if xs else None,
+                "mean_clv": round(sum(cs) / len(cs), 2) if cs else None}
+    by_reason = {}
+    for r in rows:
+        by_reason.setdefault(r.get("reason") or "other", []).append(r)
+    db.watch_stats.update_one({"_id": "current"}, {"$set": dict(board(rows), by_reason={k: board(v) for k, v in by_reason.items()},
+                                                                 note="paper record at 1u per pick; never part of the ledger",
+                                                                 updated_at=ISO)}, upsert=True)
+    log(f"watch: {graded} watch picks graded, {priced} priced at the close, {len(rows)} graded in total")
+
+
+def step_patterns(db):
+    """Grade player_patterns (V18.1 history checks) against how the prop actually did, so the
+    weekly review can test whether history tags beat untagged props. A pattern doc is matched
+    to that day's graded single (bet text) or to a graded slip leg (selection text)."""
+    done = 0
+    for d in db.player_patterns.find({"graded": {"$ne": True}, "date": {"$lt": NOW.date().isoformat()}},
+                                     {"player_prop": 1, "date": 1}):
+        key = set(_words(d.get("player_prop")))
+        if not key:
+            continue
+        res = None
+        for p in db.picks.find({"date": d["date"], "result": {"$in": ["WIN", "LOSS", "PUSH"]}},
+                               {"bet": 1, "result": 1, "tags": 1, "legs": 1, "ev_pct": 1, "price_american": 1}):
+            if not p.get("legs") and key <= set(_words(p.get("bet"))):
+                res = {"result": p["result"], "source": "single", "pick_id": p["_id"], "pick_tags": p.get("tags") or [],
+                       "ev_pct": p.get("ev_pct")}
+                break
+            for leg in p.get("legs") or []:
+                if leg.get("status") in ("WIN", "LOSS", "PUSH") and key <= set(_words(leg.get("selection"))):
+                    res = {"result": leg["status"], "source": "slip_leg", "pick_id": p["_id"], "pick_tags": p.get("tags") or []}
+                    break
+            if res:
+                break
+        if res:
+            res.update({"graded": True, "graded_at": ISO})
+            db.player_patterns.update_one({"_id": d["_id"]}, {"$set": res})
+            done += 1
+        elif d.get("date", "") < (NOW - dt.timedelta(days=5)).date().isoformat():
+            db.player_patterns.update_one({"_id": d["_id"]}, {"$set": {"graded": True, "result": "UNMATCHED", "graded_at": ISO}})
+    log(f"patterns: {done} history checks graded against their prop")
+
+
 def step_audit(db):
     since = (NOW - dt.timedelta(days=7)).date().isoformat()
     found = 0
@@ -719,8 +824,9 @@ def step_enrich(db):
 
 
 STEPS = {"enrich": step_enrich, "grade": step_grade, "sync": step_sync, "close": step_close, "audit": step_audit,
-         "summary": step_summary, "prekick": step_prekick, "tipsters": step_tipsters}
-DEFAULT = ["grade", "sync", "close", "tipsters", "audit", "enrich", "summary"]
+         "summary": step_summary, "prekick": step_prekick, "tipsters": step_tipsters,
+         "watch": step_watch, "patterns": step_patterns}
+DEFAULT = ["grade", "sync", "close", "tipsters", "watch", "patterns", "audit", "enrich", "summary"]
 
 
 def run_steps(db, steps):

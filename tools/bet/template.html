@@ -404,6 +404,9 @@ details.passes[open]>summary:after{content:"－"}
 .br2 .tg{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:5px}
 .br2 .ty{font:800 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;border-radius:6px;padding:3px 6px;background:rgba(96,165,250,.14);color:var(--blue)}
 .br2 .ty.par{background:linear-gradient(90deg,rgba(168,85,247,.22),rgba(236,72,153,.18));color:#d8b4fe}
+.br2 .ty.wt{background:rgba(255,255,255,.06);color:#c3ccd6;border:1px dashed var(--line2)}
+.bx.s0{opacity:.82;border-style:dashed}
+.bx.s0:hover,.bx.s0.on{opacity:1}
 .br2 .ty.prop{background:rgba(25,230,140,.12);color:var(--green)}
 .br2 .q{margin-left:0}
 .br2 .gtag{margin-left:0}
@@ -1126,6 +1129,7 @@ function buildBoard(d, picks, slips){
     if ((it.chips || []).join(" ").toLowerCase().indexOf("marquee") >= 0) g.marquee = true;
     if (/miss/i.test(tt)) g.miss = true;
   });
+  (d.watch || []).forEach(function(w, i){ var nm = plain(w.matchup || ""), g = (nm && (find(nm) || add(nm, w.sport, w.game_time))) || add("Watch list", w.sport || "Multi", w.game_time); w._watch = true; g.bets.push({ k: "w" + i, kind: "watch", p: w }); if (w.marquee === true || isMarq(w)) g.marquee = true; });
   /* slips last, so a same-game slip with no matchup can still find its game by the team names in its legs */
   slips.forEach(function(s, i){
     var nm = slipGame(s, d), g = null;
@@ -1137,7 +1141,7 @@ function buildBoard(d, picks, slips){
     if (!g) g = (/cross/i.test(s.slip_type || "") || !nm) ? add("Cross-game parlays", s.sport || "Multi", s.game_time) : add(nm, s.sport, s.game_time);
     g.bets.push({ k: "s" + i, kind: "slip", p: s }); if (s.marquee === true || isMarq(s)) g.marquee = true;
   });
-  games.forEach(function(g){ if (/indiana|hoosier|\bIU\b/.test(g.name) || g.bets.some(function(b){ return isIU(b.p); })) { g.iu = true; g.marquee = true; } g.units = 0; g.bets.forEach(function(b){ g.units += num(b.p.stake_units) || 0; }); });
+  games.forEach(function(g){ if (/indiana|hoosier|\bIU\b/.test(g.name) || g.bets.some(function(b){ return isIU(b.p); })) { g.iu = true; g.marquee = true; } g.units = 0; g.bets.forEach(function(b){ if (b.kind !== "watch") g.units += num(b.p.stake_units) || 0; }); });
   games.forEach(function(g){ g.best = 0; g.bets.forEach(function(b){ g.best = Math.max(g.best, strength(b.p, b.kind === "slip")); }); });
   games.sort(function(a, b){ return (!!b.bets.length - !!a.bets.length) || (b.marquee - a.marquee) || (b.best - a.best) || (tmin(a.time) - tmin(b.time)) || (b.units - a.units); });
   return { games: games, rest: rest };
@@ -1152,27 +1156,30 @@ function betLine(b, open, d){
   /* the win chance the EV was priced from (so bar, EV chip and badge agree); stated confidence only when no EV */
   var model = num(p.model_prob) != null ? (num(p.model_prob) <= 1 ? 100 * num(p.model_prob) : num(p.model_prob)) : (bev != null && ev != null ? bev * (1 + ev / 100) : conf);
   var ty = slip ? '<span class="ty par">' + esc(slipType(p)[1]) + "</span>" : /prop/i.test(p.bet_type || "") ? '<span class="ty prop">Prop</span>' : '<span class="ty">' + esc(/moneyline/i.test(p.bet_type || "") ? "Moneyline" : /spread|run line/i.test(p.bet_type || "") ? "Spread" : /total/i.test(p.bet_type || "") ? "Total" : "Single") + "</span>";
+  var watch = b.kind === "watch"; if (watch) p._watch = true;
   var sg = strength(p, slip);
-  var tags = sbadge(sg) + ty + q(p.anchor_quality) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "");
+  if (watch) ty = '<span class="ty wt">Watch · 0u</span>' + (p.legs_detail && p.legs_detail.length ? '<span class="ty par">' + esc(slipType(p)[1]) + "</span>" : "");
+  var tags = (watch ? "" : sbadge(sg)) + ty + q(p.anchor_quality) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "");
   var body;
-  if (slip) { var ld = p.legs_detail || [], fair = legFair(p, d); var legs = ld.length ? ld.map(function(l){ var sel = plain(l.selection || ""), key = sel.split(/\s+(?:over|under)\b/i)[0].trim().split(/\s+/).pop().toLowerCase(), fp = num(l.fair_prob) != null ? num(l.fair_prob) : fair[key]; if (fp != null && fp <= 1) fp *= 100; return [sel, (l.price_american != null ? fO(num(l.price_american)) : "") + (fp != null ? " · " + fp.toFixed(0) + "%" : "")]; }) : legsOf(p).map(function(l){ return [l, ""]; }); body = '<ul class="lgs">' + legs.map(function(l){ return "<li><span>" + esc(l[0]) + '</span><span class="lp">' + esc(l[1]) + "</span></li>"; }).join("") + "</ul>"; }
+  if (slip || (watch && p.legs_detail && p.legs_detail.length)) { var ld = p.legs_detail || [], fair = legFair(p, d); var legs = ld.length ? ld.map(function(l){ var sel = plain(l.selection || ""), key = sel.split(/\s+(?:over|under)\b/i)[0].trim().split(/\s+/).pop().toLowerCase(), fp = num(l.fair_prob) != null ? num(l.fair_prob) : fair[key]; if (fp != null && fp <= 1) fp *= 100; return [sel, (l.price_american != null ? fO(num(l.price_american)) : "") + (fp != null ? " · " + fp.toFixed(0) + "%" : "")]; }) : legsOf(p).map(function(l){ return [l, ""]; }); body = '<ul class="lgs">' + legs.map(function(l){ return "<li><span>" + esc(l[0]) + '</span><span class="lp">' + esc(l[1]) + "</span></li>"; }).join("") + "</ul>"; }
   else body = '<div class="ttl">' + esc(shortB(p.bet, p.matchup)) + "</div>";
 
   var good = model != null && bev != null && model >= bev;
   var bar = model != null ? '<div class="cbar' + (good ? " pos" : "") + '" title="model ' + model.toFixed(1) + "% vs break-even " + (bev != null ? bev.toFixed(1) : "?") + '%"><i style="width:' + Math.max(2, Math.min(100, model)).toFixed(1) + '%"></i>' + (bev != null ? '<b style="left:calc(' + Math.min(100, bev).toFixed(1) + '% - 1px)"></b>' : "") + "</div>" : "";
   return '<div class="br2" data-b="' + b.k + '" tabindex="0" aria-expanded="' + open + '"><div style="min-width:0"><div class="tg">' + tags + "</div>" + body + "</div>" +
-    '<div class="rt"><div class="odds">' + (pa != null ? fO(pa) : esc(plain(p.price || "—"))) + '</div><div class="stk"><b>' + (st != null ? st + "u" : "—") + "</b>" + (win != null && r === "OPEN" ? " → " + win.toFixed(2) : "") + "</div>" + (r === "OPEN" ? "" : stat(r, p.units)) + "</div>" +
-    '<div class="ft">' + bar + (model != null ? '<span class="ftx"><span class="' + (good ? "pos" : "neg") + '">' + model.toFixed(1).replace(/\.0$/, "") + "%</span>" + (bev != null ? " vs " + bev.toFixed(0) + "% BE" : "") + "</span>" : "") + (ev != null ? '<span class="evc ' + (ev > 0.05 ? "pos" : ev < -0.05 ? "neg" : "z") + '">' + fP(ev) + " EV</span>" : "") + (p.book ? '<span class="bk2">' + esc(p.book) + "</span>" : "") + sdots(sg) + "</div></div>";
+    '<div class="rt"><div class="odds">' + (pa != null ? fO(pa) : esc(plain(p.price || "—"))) + '</div>' + (watch ? '<div class="stk">not staked</div>' + (r === "OPEN" ? "" : '<span class="status ' + (r === "WIN" ? "st-win" : r === "LOSS" ? "st-loss" : "st-push") + '">' + (r === "WIN" ? "✓ " : r === "LOSS" ? "✕ " : "") + "paper " + (num(p.paper_units) != null ? fU(p.paper_units) : r.toLowerCase()) + "</span>") : '<div class="stk"><b>' + (st != null ? st + "u" : "—") + "</b>" + (win != null && r === "OPEN" ? " → " + win.toFixed(2) : "") + "</div>" + (r === "OPEN" ? "" : stat(r, p.units))) + "</div>" +
+    '<div class="ft">' + bar + (model != null ? '<span class="ftx"><span class="' + (good ? "pos" : "neg") + '">' + model.toFixed(1).replace(/\.0$/, "") + "%</span>" + (bev != null ? " vs " + bev.toFixed(0) + "% BE" : "") + "</span>" : "") + (ev != null ? '<span class="evc ' + (ev > 0.05 ? "pos" : ev < -0.05 ? "neg" : "z") + '">' + fP(ev) + " EV</span>" : "") + (p.book ? '<span class="bk2">' + esc(p.book) + "</span>" : "") + (watch ? '<span class="bk2">' + esc(p.reason ? String(p.reason).replace(/_/g, " ") : "no edge") + "</span>" : sdots(sg)) + "</div></div>";
 }
 function betExpand(b, d){
   var p = b.p;
-  if (b.kind === "slip") return '<div class="bexp">' + slipCard(p, d) + "</div>";
+  if (b.kind === "slip" || (b.kind === "watch" && p.legs_detail && p.legs_detail.length)) return '<div class="bexp">' + slipCard(p, d) + "</div>";
   var o = odds(p), bv = be(o), conf = num(p.confidence), ev = num(p.ev_pct);
   var cell = function(v, l, c){ return '<div><div class="v ' + (c || "") + '">' + v + '</div><div class="l">' + l + "</div></div>"; };
   return '<div class="bexp"><div class="nums">' + cell(fO(o), "Odds") + cell(bv != null ? bv.toFixed(1) + "%" : "—", "Break-even") + cell(conf != null ? conf + "%" : "—", "Model", conf != null && bv != null ? (conf >= bv ? "pos" : "neg") : "") + cell(fP(ev), "EV", cls(ev)) + cell(num(p.stake_units) != null ? p.stake_units + "u" : "—", "Stake") + cell(esc(p.anchor_quality || "—"), "Anchor") + "</div>" + detail(p, true) + "</div>";
 }
 /* strength 1-5 from what the bet is worth: EV first, then model vs break-even; forced tickets cap at 2 */
 function strength(p, slip){
+  if (p && p._watch) return 0;
   var ev = num(p.ev_pct), o = odds(p), pa = o != null ? o : num(p.price_american);
   var bev = slip ? num(String(p.be || "").replace("%", "")) : be(o); if (bev == null && pa != null) bev = be(pa);
   var conf = num(p.confidence), model = bev != null && ev != null ? bev * (1 + ev / 100) : conf;
@@ -1187,7 +1194,7 @@ function strength(p, slip){
 function sdots(s){ var h = '<span class="sdots l' + s + '" title="strength ' + s + ' of 5">'; for (var i = 1; i <= 5; i++) h += '<i class="' + (i <= s ? "on" : "") + '"></i>'; return h + "</span>"; }
 function sbadge(s){ return s >= 4 ? '<span class="sbadge best">Best bet</span>' : s === 3 ? '<span class="sbadge edge">Edge</span>' : s === 1 ? '<span class="sbadge low">Low confidence</span>' : ""; }
 function topPlays(B, d){
-  var all = []; B.games.forEach(function(g){ g.bets.forEach(function(b){ all.push({ b: b, g: g, s: strength(b.p, b.kind === "slip") }); }); });
+  var all = []; B.games.forEach(function(g){ g.bets.forEach(function(b){ if (b.kind === "watch") return; all.push({ b: b, g: g, s: strength(b.p, b.kind === "slip") }); }); });
   all.sort(function(a, c){ return (c.s - a.s) || ((num(c.b.p.ev_pct) || -99) - (num(a.b.p.ev_pct) || -99)) || ((num(c.b.p.stake_units) || 0) - (num(a.b.p.stake_units) || 0)); });
   var top = all.filter(function(x){ return x.s >= 3; }).slice(0, 3);
   var lead = top.length ? top : all.slice(0, 1);
@@ -1207,13 +1214,14 @@ function renderBoard(d, picks, slips){
     var head = sd.length === 2 ? '<div class="tm">' + esc(sd[0]) + '</div><div class="vs">' + (/\svs\.?\s/i.test(plain(g.name)) ? "VS" : "@") + '</div><div class="tm">' + esc(sd[1]) + "</div>" : '<div class="tm">' + esc(plain(g.name)) + "</div>";
     var pr = g.priced.map(function(x){ return [x.line, x.read].filter(Boolean).map(plain).join(" — "); }).filter(Boolean);
     var hoo = g.iu && d.hoosier ? (typeof d.hoosier === "string" ? d.hoosier : (d.hoosier.text || "")) : "";
-    var hasSlip = g.bets.some(function(b){ return b.kind === "slip"; });
+    var hasSlip = g.bets.some(function(b){ return b.kind === "slip" || (b.kind === "watch" && b.p.legs_detail && b.p.legs_detail.length); });
+    var nb = g.bets.filter(function(b){ return b.kind !== "watch"; }).length, nw = g.bets.length - nb;
     return '<div class="gb' + (g.marquee ? " gmq" : "") + '" style="--c:' + sc + '"><div class="gh"><div style="min-width:0">' + (g.marquee ? '<div class="rib">★ ' + (g.iu ? "Indiana" : "Marquee") + "</div>" : "") + '<div class="lg"><span class="sw"></span>' + esc(g.sport || "Multi") + (g.tier && !/marquee/i.test(g.tier) ? " · " + esc(g.tier) : "") + "</div>" + head + (ven ? '<div class="ven">' + esc(ven) + "</div>" : "") + "</div>" +
-      '<div class="side2">' + (g.time ? '<div class="time">' + esc(String(g.time).replace(/\s*ET$/, "")) + "</div>" : "") + (g.units ? '<div class="amt">' + (Math.round(g.units * 100) / 100) + "u<small>" + g.bets.length + " BET" + (g.bets.length === 1 ? "" : "S") + "</small></div>" : "") + "</div></div>" +
+      '<div class="side2">' + (g.time ? '<div class="time">' + esc(String(g.time).replace(/\s*ET$/, "")) + "</div>" : "") + '<div class="amt">' + (g.units ? (Math.round(g.units * 100) / 100) + "u" : "") + "<small>" + [nb ? nb + " BET" + (nb === 1 ? "" : "S") : "", nw ? nw + " WATCH" : ""].filter(Boolean).join(" · ") + "</small></div>" + "</div></div>" +
       (pr.length ? '<div class="gp"><span class="k">What I priced</span>' + pr.map(esc).join(" · ") + "</div>" : "") +
       (hoo ? '<div class="gp hoo clamp" data-clamp><span class="k">Hoosier corner · tap to expand</span>' + md(hoo) + "</div>" : "") +
       '<div class="bets">' + g.bets.slice().sort(function(a, c){ return strength(c.p, c.kind === "slip") - strength(a.p, a.kind === "slip"); }).map(function(b){ var on = state.open === b.k; return '<div class="bx s' + strength(b.p, b.kind === "slip") + (on ? " on" : "") + '">' + betLine(b, on, d) + (on ? betExpand(b, d) : "") + "</div>"; }).join("") + "</div>" +
-      (g.marquee && g.bets.length && !hasSlip ? '<div class="gnc">⚠ No companion parlay on this marquee game</div>' : "") + "</div>";
+      (g.marquee && g.bets.some(function(b){ return b.kind === "single"; }) && !hasSlip ? '<div class="gnc">⚠ No companion parlay on this marquee game</div>' : "") + "</div>";
   };
   var unchk = (d.leagues_unchecked || []).map(function(x){ return typeof x === "string" ? x : plain(x.league || x.name || ""); }).filter(Boolean);
   var rest = B.rest.map(function(x){ return [x.game, x.read].filter(Boolean).map(plain).join(": "); });
@@ -1229,12 +1237,13 @@ function hero2(d, date, picks, slips){
   picks.concat(slips).forEach(function(p){ stk += num(p.stake_units) || 0; var ev = num(p.ev_pct); if (ev != null && (best == null || ev > best)) best = ev; });
   buildBoard(d, picks, slips).games.forEach(function(g){ if (g.marquee) mq++; });
   var x = dd(date), l7 = lastN(7);
+  var nW = (d.watch || []).length;
   var hs = function(v, l, c){ return '<div class="hstat"><div class="v ' + (c || "") + '">' + v + '</div><div class="l">' + l + "</div></div>"; };
   var rec = isT && LO ? RECORD.W + "–" + RECORD.L + (RECORD.P ? "–" + RECORD.P : "") : (e.record_after || RECORD.W + "–" + RECORD.L), u = isT && LO ? UNITS : (e.units_after != null ? e.units_after : UNITS);
   var c0 = ((IX.stats || {}).clv || [])[0] || {};
   return '<section class="hero2"><div class="hk"><i></i>' + esc(WD[x.getUTCDay()] + " · " + MON[x.getUTCMonth()] + " " + x.getUTCDate()) + (isT ? " · Updated " + esc(ago(d.generated_at || IX.updated_at)) : "") + "</div>" +
     "<h2>" + (isT ? "Today’s <span>card</span>" : "The <span>card</span> · " + esc(fDs(date))) + "</h2>" + (d.headline ? "<p>" + esc(plain(d.headline)) + "</p>" : "") +
-    '<div class="hstats">' + hs(picks.length + slips.length, picks.length + " singles · " + slips.length + " parlays") + hs((Math.round(stk * 100) / 100) + "u", "at risk") + hs(best == null ? "—" : fP(best), "best EV", cls(best)) + hs(mq, "marquee games", mq ? "neu" : "") + "</div>" +
+    '<div class="hstats">' + hs(picks.length + slips.length, picks.length + " singles · " + slips.length + " parlays" + (nW ? " · " + nW + " watch" : "")) + hs((Math.round(stk * 100) / 100) + "u", "at risk") + hs(best == null ? "—" : fP(best), "best EV", cls(best)) + hs(mq, "marquee games", mq ? "neu" : "") + "</div>" +
     '<div class="hfoot"><span>All-time <b>' + esc(rec) + '</b></span><span class="' + cls(u) + '">' + fU(u) + '</span><span>Last 7 <b class="' + cls(l7) + '">' + fU(l7) + "</b></span>" + (c0.mean != null ? '<span>Mean CLV <b class="' + cls(c0.mean) + '">' + fP(c0.mean, 2) + "</b></span>" : "") + "</div></section>";
 }
 function renderDay(r){
