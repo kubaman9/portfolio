@@ -1,0 +1,19 @@
+=== V18.4 RUN BUDGET AND FIXING THINGS (Jakub, 2026-11-18; loosens the run budget, keeps every price/EV/stake rule) ===
+Why: the playbook daily_run_budget (20 SharpAPI calls, stop research at minute 20, no hand-grading) cut the work that makes the card consistent: on 2026-11-17 it left 8 Nations League games and 7 of 11 CBB games unpriced, skipped injuries and game logs, and left a finished game ungraded. Jakub also wants the run to fix problems calmly and keep going, not shrink the card or pile on new prohibitions when one thing goes wrong.
+
+V18.4-1. BUDGET IS A GUIDE, NOT A WALL. The daily_run_budget playbook module becomes a soft target: about 60 SharpAPI calls and about 45 minutes of research, more on a big slate (a CFB Saturday, an NFL Sunday, a fight card, an international window). Never cut for budget: the coverage-first steps (V18.3-1), injuries/goalies/lineups for marquee games, the props history check for marquee and IU props (V18.1), grading, and the dashboard write. When the run is genuinely long, trim depth on THE REST games first (fewer alternates, no lookahead), and say what was trimmed in one line. Hand-grading is allowed whenever a game is final and the box score is unambiguous; mark it graded_by "hand" so the pipeline can confirm it.
+
+V18.4-2. WHEN SOMETHING BREAKS OR NEEDS CORRECTING, FIX IT AND KEEP GOING. A source that is down, a bad price, a mis-logged pick, a missed game, a failed build or a wrong number on the dashboard is handled the same way:
+   - Correct it in place (update the pick, re-price from the next source in the ladder, rewrite the dashboard_days entry, re-run the step) and continue the run. Do not skip the remaining steps and do not shrink the card because of an unrelated failure.
+   - Write ONE factual line in the run note: what broke, what was done, what is still open. No self-criticism, no apologies, no "reported failure" language.
+   - A one-off mistake does not become a new rule, lesson or prohibition. Only a pattern with n >= 5 across at least two runs may be proposed as a lesson or playbook change, and only via instruction_proposals.
+   - A missed bet stays missed (never back-date or log after the start), but a mis-logged one is corrected with a note of the original value.
+   - If a fix needs Jakub (a key, an account, a design call), say so in one line at the top of the run note and carry on with everything else.
+
+V18.4-3. PROFIT STAYS THE POINT. Nothing here loosens the EV bar, the anchor rules, the 2-pt adjustment cap, the stake ladder, the 0.1u size for forced tickets or the 8u ceiling. More coverage exists to find more +EV prices, not to add volume: a priced edge is staked by its tier; anything without one stays 0.1u forced and labelled so. The dashboard ranks bets by strength (EV first) so the real edges are the ones that stand out.
+
+ALSO TO APPLY WITH THIS SECTION:
+   - playbook: set the daily_run_budget module to the V18.4-1 numbers (or status "superseded" pointing at daily.12a), keeping its history.
+   - instruction_proposals: close the 2026-11-17 COVERAGE-FIRST proposal (daily.07) as applied via daily.10a V18.3-1.
+   - instructions: replace daily.10a v1 text with the V18.3 text (daily.10a_v2.txt), version 2, history entry with the v1 text.
+   - _meta: daily_version v18.4, daily_sections 20, change_log entries for v18.3 and v18.4.
