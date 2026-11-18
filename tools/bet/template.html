@@ -319,6 +319,42 @@ details.more>.in{padding:0 16px 16px}
 .why div{line-height:1.4}
 .why b{font:700 10.5px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-right:6px}
 .why .lose b{color:var(--red)}
+.board{display:flex;flex-direction:column;gap:12px}
+.glance{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);margin:-4px 0 12px}
+.glance b{color:var(--text);font-family:var(--mono)}
+.gblock{border:1px solid var(--line);background:var(--bg2);border-radius:14px;overflow:hidden}
+.gblock.gmq{border-color:rgba(245,181,24,.45)}
+.ghead{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px 6px}
+.ghead .gm{font-weight:700;font-size:14.5px;line-height:1.25}
+.ghead .gt{font-size:11.5px;color:var(--muted);margin-top:1px}
+.ghead .gu{font:700 12px var(--mono);color:var(--muted);text-align:right;white-space:nowrap}
+.gpriced{padding:0 12px 9px 12px;font-size:12px;color:#aab6c3;line-height:1.4}
+.gpriced b{font:700 10px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin-right:6px}
+.gnote{padding:0 12px 10px;font-size:12px;color:#d9c48a;line-height:1.4}
+.brow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);cursor:pointer}
+.brow:hover{background:var(--panel2)}
+.brow.on{background:var(--panel2)}
+.brow .bt{font-weight:600;font-size:13.5px;line-height:1.3;min-width:0}
+.brow .bk{display:inline-block;font:700 9.5px var(--mono);letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:2px 5px;margin-right:6px;vertical-align:1px;background:rgba(96,165,250,.14);color:var(--blue)}
+.brow .bk.par{background:rgba(168,85,247,.16);color:#c79bff}
+.brow .bn{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 12px;font:600 11.5px var(--mono);color:#c3ccd6}
+.brow .bn .dim{color:var(--dim)}
+.bexp{padding:4px 12px 14px;background:var(--panel2);border-top:1px dashed var(--line)}
+.bexp .slip{border:0;background:none;padding:6px 0 0}
+.bexp .slip-h,.bexp .slip>.meta{display:none}
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px}
+.nums>div{background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:7px 8px;text-align:center}
+.nums .v{font:700 13px var(--mono)} .nums .l{font-size:10.5px;color:var(--muted)}
+details.passes{border:1px solid var(--line);border-radius:14px;background:var(--bg2)}
+details.passes>summary{cursor:pointer;padding:11px 12px;font-weight:600;font-size:13.5px;list-style:none;display:flex;justify-content:space-between;gap:10px}
+details.passes>summary::-webkit-details-marker{display:none}
+details.passes>summary:after{content:"＋";color:var(--muted)}
+details.passes[open]>summary:after{content:"－"}
+.prow2{padding:9px 12px;border-top:1px solid var(--line);font-size:12.5px}
+.prow2 .t{font-weight:600}
+.prow2 .r2{color:#aab6c3;margin-top:2px}
+.unchk{font-size:12px;color:#f3a58f;line-height:1.5;padding:2px 2px 0}
+.unchk b{font:700 10px var(--mono);text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
 @media (max-width:1180px){
   .detail-card{display:none}
   .prow.sel+.pinline{display:block;padding:4px 6px 14px 52px;border-bottom:1px solid var(--line)}
@@ -402,7 +438,7 @@ var IX = DATA.index || {}, DAYS = DATA.days || {};
 var DATES = Object.keys(DAYS).sort();
 var LATEST = (IX.latest_day && DAYS[IX.latest_day]) ? IX.latest_day : DATES[DATES.length - 1];
 var IXDAYS = (IX.days || []).slice().sort(function(a, b){ return a.date < b.date ? -1 : 1; });
-var state = { sport: "All", sel: -1, exp: false, tab: "analysis", brk: "type", hsport: "All", hres: "All", hkind: "All", hq: "", hn: 40, wire: "All", pbrk: "type" };
+var state = { sport: "All", sel: -1, exp: false, open: null, passOpen: false, tab: "analysis", brk: "type", hsport: "All", hres: "All", hkind: "All", hq: "", hn: 40, wire: "All", pbrk: "type" };
 
 /* ---------- helpers ---------- */
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -930,6 +966,112 @@ function extras(d){
   if (!parts.length) return "";
   return '<details class="more"><summary>More from this run</summary><div class="in">' + parts.map(function(p){ return p.join(""); }).join("") + "</div></details>";
 }
+/* ---------- TODAY BOARD: one block per game = what's on, what was priced, what was bet ---------- */
+var GENERIC = { state: 1, city: 1, united: 1, the: 1, msg: 1, at: 1, vs: 1 };
+function gsides(s){ return plain(s || "").replace(/\s*\(.*?\)\s*/g, " ").replace(/^(single|parlay|pass)[^:]*:\s*/i, "").trim().split(/\s+(?:@|vs\.?|v\.?|at)\s+/i).map(function(x){ return x.trim(); }).filter(Boolean); }
+function sideMatch(a, b){
+  var A = norm(a), B = norm(b);
+  if (!A || !B) return false;
+  var wa = A.split(" ").filter(function(w){ return w.length > 3 && !GENERIC[w]; }), wb = B.split(" ");
+  if (wa.some(function(w){ return wb.indexOf(w) >= 0; })) return true;
+  var ab = function(x, full){ if (!/^[A-Z]{2,5}$/.test(x)) return false; var f = full.replace(/[^a-z]/g, ""), k = 0, lx = x.toLowerCase(); if (f.charAt(0) !== lx.charAt(0)) return false; for (var i = 0; i < f.length && k < lx.length; i++) if (f.charAt(i) === lx.charAt(k)) k++; return k === lx.length; };
+  return ab(plain(a).trim(), B) || ab(plain(b).trim(), A);
+}
+function sameGame(x, y){
+  var a = gsides(x), b = gsides(y);
+  if (!a.length || !b.length) return false;
+  if (a.length === 2 && b.length === 2) return (sideMatch(a[0], b[0]) && sideMatch(a[1], b[1])) || (sideMatch(a[0], b[1]) && sideMatch(a[1], b[0]));
+  return a.some(function(s){ return b.some(function(t){ return sideMatch(s, t); }); });
+}
+function tmin(s){ var m = String(s || "").match(/(\d{1,2}):(\d{2})\s*([AP])M/i); if (!m) return 9999; var h = +m[1] % 12 + (/p/i.test(m[3]) ? 12 : 0); var dw = String(s).match(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)/); return (dw ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(dw[1]) * 1440 : 0) + h * 60 + +m[2]; }
+function slipGame(s, d){
+  if (s.matchup) return plain(s.matchup);
+  var it = slipItem(s, d), m = it && plain(it.title || "").match(/,\s*([A-Z]{2,5}\s*@\s*[A-Z]{2,5})\s*$/);
+  if (m) return m[1];
+  return slipMatch(s);
+}
+function buildBoard(d, picks, slips){
+  var games = [];
+  var find = function(m){ for (var i = 0; i < games.length; i++) if (sameGame(games[i].name, m)) return games[i]; return null; };
+  var add = function(m, sport, time){ var g = find(m); if (!g) { g = { name: m, sport: sport, time: time, bets: [], priced: [], marquee: false }; games.push(g); } if (!g.time && time) g.time = time; if ((!g.sport || g.sport === "Multi") && sport) g.sport = sport; if (gsides(m).join(" ").length > gsides(g.name).join(" ").length && gsides(m).length === 2) g.name = m; return g; };
+  picks.forEach(function(p, i){ var g = add(plain(p.matchup || p.bet), p.sport, p.game_time); g.bets.push({ k: "p" + i, kind: "single", p: p }); if (isMarq(p)) g.marquee = true; });
+  var rest = [];
+  (d.full_slate || []).forEach(function(x){
+    var nm = plain(x.game || ""), mq = /marquee/i.test(x.tier || "");
+    if (gsides(nm).length < 2) { rest.push(x); return; }
+    var g = find(nm) || add(nm, x.sport, x.time || x.game_time);
+    g.priced.push(x); if (mq) g.marquee = true; if (x.tier) g.tier = plain(x.tier);
+  });
+  (d.card && d.card.items || []).forEach(function(it){
+    var tt = plain(it.title || ""); if (!/^pass/i.test(tt)) return;
+    var nm = tt.replace(/^pass[^:]*:\s*/i, "");
+    var g = find(nm) || add(nm, it.sport, it.game_time || it.game);
+    g.priced.push({ read: [it.priced, it.priced_b].filter(Boolean).join(" "), line: "", miss: /miss/i.test(tt) });
+    if ((it.chips || []).join(" ").toLowerCase().indexOf("marquee") >= 0) g.marquee = true;
+    if (/miss/i.test(tt)) g.miss = true;
+  });
+  /* slips last, so a same-game slip with no matchup can still find its game by the team names in its legs */
+  slips.forEach(function(s, i){
+    var nm = slipGame(s, d), g = null;
+    if (!nm && !/cross/i.test(s.slip_type || "")) {
+      var lt = " " + norm(plain(s.legs || "") + " " + (s.legs_detail || []).map(function(l){ return plain(l.selection || ""); }).join(" ")) + " ";
+      var hits = games.filter(function(x){ return gsides(x.name).some(function(sd){ return norm(sd).split(" ").some(function(w){ return w.length > 3 && !GENERIC[w] && lt.indexOf(" " + w + " ") >= 0; }); }); });
+      if (hits.length === 1) g = hits[0];
+    }
+    if (!g) g = (/cross/i.test(s.slip_type || "") || !nm) ? add("Cross-game parlays", s.sport || "Multi", s.game_time) : add(nm, s.sport, s.game_time);
+    g.bets.push({ k: "s" + i, kind: "slip", p: s }); if (s.marquee === true || isMarq(s)) g.marquee = true;
+  });
+  games.forEach(function(g){ if (/indiana|hoosier|\bIU\b/.test(g.name) || g.bets.some(function(b){ return isIU(b.p); })) { g.iu = true; g.marquee = true; } g.units = 0; g.bets.forEach(function(b){ g.units += num(b.p.stake_units) || 0; }); });
+  games.sort(function(a, b){ return (!!b.bets.length - !!a.bets.length) || (b.marquee - a.marquee) || (tmin(a.time) - tmin(b.time)) || (b.units - a.units); });
+  return { games: games, rest: rest };
+}
+function betLine(b, open){
+  var p = b.p, o = odds(p), st = num(p.stake_units), ev = num(p.ev_pct), r = String(p.result || "OPEN").toUpperCase();
+  var pa = o != null ? o : num(p.price_american);
+  var win = st != null && pa != null ? st * (pa > 0 ? pa / 100 : 100 / -pa) : null;
+  var title, tag;
+  if (b.kind === "slip") { var ld = p.legs_detail || []; title = ld.length ? ld.map(function(l){ return plain(l.selection || ""); }).join(" + ") : plain(p.legs || p.shape); tag = '<span class="bk par">' + esc(slipType(p)[1]) + "</span>"; }
+  else { title = shortB(p.bet, p.matchup); tag = '<span class="bk">' + (/prop/i.test(p.bet_type || "") ? "Prop" : "Single") + "</span>"; }
+  var grade = p.pick_grade || "";
+  var bev = b.kind === "slip" ? num(String(p.be || "").replace("%", "")) : be(o), conf = num(p.confidence);
+  if (b.kind === "slip" && bev == null && pa != null) bev = be(pa);
+  var model = conf != null ? conf : (bev != null && ev != null ? bev * (1 + ev / 100) : null);
+  return '<div class="brow' + (open ? " on" : "") + '" data-b="' + b.k + '" tabindex="0" aria-expanded="' + open + '"><div class="bt">' + tag + esc(title) + (b.kind === "single" ? q(p.anchor_quality) : q(p.anchor_quality)) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "") + "</div>" + stat(r, p.units) +
+    '<div class="bn"><span>' + (pa != null ? fO(pa) : esc(plain(p.price || "—"))) + "</span><span>" + (st != null ? st + "u" + (win != null ? '<span class="dim"> → </span>' + win.toFixed(2) : "") : "") + '</span><span class="' + (model != null && bev != null ? (model >= bev ? "pos" : "neg") : "") + '">' + (model != null ? model.toFixed(1).replace(/\.0$/, "") + "%" + (bev != null ? '<span class="dim"> vs </span>' + bev.toFixed(0) + "% BE" : "") : "") + '</span><span class="' + cls(ev) + '">' + (ev != null ? fP(ev) + " EV" : "") + "</span>" + (p.book ? '<span class="dim">' + esc(p.book) + "</span>" : "") + "</div></div>";
+}
+function betExpand(b, d){
+  var p = b.p;
+  if (b.kind === "slip") return '<div class="bexp">' + slipCard(p, d) + "</div>";
+  var o = odds(p), bv = be(o), conf = num(p.confidence), ev = num(p.ev_pct);
+  var cell = function(v, l, c){ return '<div><div class="v ' + (c || "") + '">' + v + '</div><div class="l">' + l + "</div></div>"; };
+  return '<div class="bexp"><div class="nums">' + cell(fO(o), "Odds") + cell(bv != null ? bv.toFixed(1) + "%" : "—", "Break-even") + cell(conf != null ? conf + "%" : "—", "Model", conf != null && bv != null ? (conf >= bv ? "pos" : "neg") : "") + cell(fP(ev), "EV", cls(ev)) + cell(num(p.stake_units) != null ? p.stake_units + "u" : "—", "Stake") + cell(esc(p.anchor_quality || "—"), "Anchor") + "</div>" + detail(p, true) + "</div>";
+}
+function renderBoard(d, picks, slips){
+  var B = buildBoard(d, picks, slips);
+  var games = B.games.filter(function(g){ return state.sport === "All" || g.sport === state.sport || g.bets.some(function(b){ return b.p.sport === state.sport; }); });
+  var bet = games.filter(function(g){ return g.bets.length; }), nobet = games.filter(function(g){ return !g.bets.length; });
+  var nS = picks.length, nP = slips.length, stk = 0; picks.concat(slips).forEach(function(p){ stk += num(p.stake_units) || 0; });
+  var pricedN = B.games.filter(function(g){ return g.priced.length || g.bets.length; }).length;
+  var glance = '<div class="glance"><span><b>' + bet.length + "</b> games bet</span><span><b>" + nS + "</b> singles</span><span><b>" + nP + "</b> parlays</span><span><b>" + (Math.round(stk * 100) / 100) + "u</b> staked</span><span><b>" + nobet.length + "</b> priced, no bet</span></div>";
+  var block = function(g){
+    var mqTag = g.marquee ? '<span class="mtag" style="margin-left:0;margin-right:6px">' + (g.iu ? "★ IU" : "★ Marquee") + "</span>" : "";
+    var pr = g.priced.map(function(x){ return [x.line, x.read].filter(Boolean).map(plain).join(" — "); }).filter(Boolean);
+    var hoo = g.iu && d.hoosier ? (typeof d.hoosier === "string" ? d.hoosier : (d.hoosier.text || "")) : "";
+    return '<div class="gblock' + (g.marquee ? " gmq" : "") + '"><div class="ghead">' + badge(g.sport || "Multi", "sm") + '<div style="min-width:0"><div class="gm">' + mqTag + esc(g.name) + '</div><div class="gt">' + esc([g.time, g.tier && !/marquee/i.test(g.tier) ? g.tier.toLowerCase() : ""].filter(Boolean).join(" · ")) + "</div></div>" + '<div class="gu">' + (g.units ? (Math.round(g.units * 100) / 100) + "u" : "") + "</div></div>" +
+      (pr.length ? '<div class="gpriced"><b>Priced</b>' + pr.map(esc).join(" · ") + "</div>" : "") +
+      (hoo ? '<div class="gnote clamp" data-clamp>' + md(hoo) + "</div>" : "") +
+      g.bets.map(function(b){ var on = state.open === b.k; return betLine(b, on) + (on ? betExpand(b, d) : ""); }).join("") +
+      (g.marquee && g.bets.length && !g.bets.some(function(b){ return b.kind === "slip"; }) ? '<div class="prow2 mut" style="font-size:11.5px">No companion parlay on this marquee game.</div>' : "") + "</div>";
+  };
+  var unchk = (d.leagues_unchecked || []).map(function(x){ return typeof x === "string" ? x : plain(x.league || x.name || ""); }).filter(Boolean);
+  var rest = B.rest.map(function(x){ return [x.game, x.read].filter(Boolean).map(plain).join(": "); });
+  var passes = nobet.length || rest.length ? '<details class="passes"' + (state.passOpen ? " open" : "") + ' id="passes"><summary><span>Priced, no bet <span class="mut">(' + nobet.length + ")</span></span></summary>" +
+    nobet.map(function(g){ var pr = g.priced.map(function(x){ return [x.line, x.read].filter(Boolean).map(plain).join(" — "); }).join(" · "); return '<div class="prow2"><div class="t">' + (g.marquee ? '<span class="star">★</span>' : "") + badge(g.sport || "Multi", "xs") + " " + esc(g.name) + (g.miss ? ' <span class="neg" style="font-size:11px">missed</span>' : "") + (g.time ? ' <span class="mut" style="font-weight:400">' + esc(g.time) + "</span>" : "") + '</div><div class="r2">' + esc(pr || "No bet.") + "</div></div>"; }).join("") +
+    rest.map(function(x){ return '<div class="prow2"><div class="r2">' + esc(x) + "</div></div>"; }).join("") + "</details>" : "";
+  var miss = unchk.length ? '<div class="unchk"><b>Not checked</b>' + esc(unchk.join(" · ")) + "</div>" : "";
+  return '<div class="card" id="picks"><div class="card-h"><h2>' + (DAYS[LATEST] === d ? "Today’s board" : "The board") + '</h2><span class="sub">tap a bet for the full read</span></div>' + glance +
+    '<div class="board">' + (bet.length ? bet.map(block).join("") : '<div class="empty">No bets' + (state.sport !== "All" ? " in " + esc(state.sport) : "") + " on this card.</div>") + passes + miss + "</div></div>";
+}
 function renderDay(r){
   var date = r.d, d = DAYS[date] || {};
   var picks = (d.picks || []).map(function(p){ return resolve(p, date); });
@@ -954,13 +1096,9 @@ function renderDay(r){
     '<div class="htiles"><div class="htile"><div class="l">Positions</div><div class="v">' + (picks.length + slips.length) + '</div><div class="s">' + picks.length + " singles · " + slips.length + ' slips</div></div><div class="htile"><div class="l">Units at risk</div><div class="v">' + (Math.round(stakeSum * 100) / 100) + 'u</div><div class="s">of 8u ceiling</div></div><div class="htile"><div class="l">Record after</div><div class="v">' + esc(e.record_after || "—") + '</div><div class="s">' + fU(e.units_day) + ' this day</div></div><div class="htile"><div class="l">CLV coverage</div><div class="v">' + esc(e.clv_coverage || "—") + '</div><div class="s">real closes</div></div></div>' +
     '<div class="hero-badge"><div class="v ' + cls(l7) + '">' + fU(l7) + '</div><div class="l">Last 7 days</div></div></section>';
   var chips = '<div class="chips">' + ["All"].concat(sports).map(function(s){ return '<button class="chip' + (state.sport === s ? " on" : "") + '" data-sport="' + esc(s) + '">' + (s === "All" ? "All" : badge(s, "xs")) + (s === "All" ? "" : esc(s)) + ' <span class="n">' + (s === "All" ? picks.length + slips.length : cnt[s]) + "</span></button>"; }).join("") + "</div>";
-  var featured = '<div class="card" id="picks"><div class="card-h"><h2>' + (isToday ? "Today’s card" : "The card") + '</h2><span class="sub">' + (fp.length ? fp.length + " singles · tap to expand" : "") + "</span></div>" + cardQuality(picks) +
-    (fp.length ? '<div class="phead"><span></span><span>Matchup</span><span>Pick</span><span>Odds</span><span>Conf.</span><span>EV</span><span class="r">Status</span></div><div class="plist">' + fp.map(function(x){ var on = x.i === state.sel; return pickRow(x.p, x.i, on) + (on && state.exp ? '<div class="pinline">' + detail(x.p, true) + "</div>" : ""); }).join("") + "</div>" : '<div class="empty">No singles' + (state.sport !== "All" ? " in " + esc(state.sport) : "") + " on this card.</div>") + "</div>";
-  var detailCard = '<div class="card detail-card" id="detail"><div class="card-h"><h2>Pick detail</h2><span class="sub">' + (picks.length ? state.sel + 1 + " of " + picks.length : "") + "</span></div>" + detail(picks[state.sel]) + "</div>";
-  var parlays = '<div class="card"><div class="card-h"><h2>Parlay corner</h2><span class="sub">' + fs.length + " slip" + (fs.length === 1 ? "" : "s") + "</span></div>" + (fs.length ? '<div class="slips">' + fs.map(function(s){ return slipCard(s, d); }).join("") + "</div>" : '<div class="empty">No parlays on this card.</div>') + "</div>";
   document.getElementById("view").innerHTML =
     mg + kstrip(date) +
-    '<div class="grid g-today"><div class="col">' + hero + chips + (state.sport === "All" ? marquee(picks, d) + hoosierCard(d) : "") + featured + detailCard + parlays + "</div>" +
+    '<div class="grid g-today"><div class="col">' + hero + chips + renderBoard(d, picks, slips) + (d.hoosier && !buildBoard(d, picks, slips).games.some(function(g){ return g.iu; }) ? hoosierCard(d) : "") + "</div>" +
     '<div class="col aside">' + quickStats(d, date) + topLeagues() + renderNotes(d) + renderWire(d) + quoteCard() + "</div></div>" + labRow() +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + renderGraded(d, date) + renderPasses(d) + "</div>" +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));margin-top:16px;align-items:start">' + pastPicks(8) + breakdown("brk", BRK.slice(0, 3)) + "</div>" +
@@ -1144,8 +1282,10 @@ function render(){
   if (!ok) document.getElementById("view").innerHTML = '<div class="card"><div class="empty">This view hit a data problem. Try <a class="acc" href="#/history">History</a>.</div></div>';
 }
 var lastRoute = "";
-window.addEventListener("hashchange", function(){ var h = location.hash; if (h === "#picks") return; if (h !== lastRoute) { state.sel = -1; state.exp = false; state.tab = "analysis"; state.sport = "All"; state.wire = "All"; } lastRoute = h; render(); window.scrollTo(0, 0); });
+window.addEventListener("hashchange", function(){ var h = location.hash; if (h === "#picks") return; if (h !== lastRoute) { state.sel = -1; state.exp = false; state.open = null; state.passOpen = false; state.tab = "analysis"; state.sport = "All"; state.wire = "All"; } lastRoute = h; render(); window.scrollTo(0, 0); });
 document.addEventListener("click", function(e){
+  var bt = e.target.closest("[data-b]");
+  if (bt && !e.target.closest(".bexp")) { var k = bt.getAttribute("data-b"); state.open = state.open === k ? null : k; state.tab = "analysis"; var pd = document.getElementById("passes"); state.passOpen = !!(pd && pd.open); render(); var nb = document.querySelector('[data-b="' + k + '"]'); if (nb && state.open) nb.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
   var t = e.target.closest("[data-i],[data-tab],[data-sport],[data-brk],[data-h],[data-go],[data-wire],[data-scroll],#more,[data-clamp]");
   if (!t) return;
   if (t.hasAttribute("data-scroll")) { e.preventDefault(); var el = document.getElementById(t.getAttribute("data-scroll")); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
@@ -1163,7 +1303,8 @@ document.addEventListener("click", function(e){
   if (t.id === "more") { state.hn += 60; render(); return; }
   if (t.hasAttribute("data-go")) { location.hash = t.getAttribute("data-go"); }
 });
-document.addEventListener("keydown", function(e){ if ((e.key === "Enter" || e.key === " ") && e.target.hasAttribute && e.target.hasAttribute("data-i")) { e.preventDefault(); e.target.click(); } });
+document.addEventListener("toggle", function(e){ if (e.target && e.target.id === "passes") state.passOpen = e.target.open; }, true);
+document.addEventListener("keydown", function(e){ if ((e.key === "Enter" || e.key === " ") && e.target.hasAttribute && (e.target.hasAttribute("data-i") || e.target.hasAttribute("data-b"))) { e.preventDefault(); e.target.click(); } });
 document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target.id === "gq") { state.hq = e.target.value; state.hsport = "All"; state.hres = "All"; state.hkind = "All"; state.hn = 40; if (location.hash === "#/history") render(); else location.hash = "#/history"; } });
 document.addEventListener("input", function(e){ if (e.target.id === "hq") { state.hq = e.target.value; state.hn = 40; var pos = e.target.selectionStart; render(); var n = document.getElementById("hq"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } } });
 lastRoute = location.hash;
