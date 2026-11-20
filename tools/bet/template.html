@@ -458,6 +458,7 @@ details.passes[open]>summary:after{content:"－"}
 .sbadge{font:800 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;border-radius:6px;padding:3px 7px}
 .sbadge.best{background:linear-gradient(90deg,#19e68c,#7dd3fc);color:#03140b}
 .sbadge.edge{background:var(--greenbg);color:var(--green);border:1px solid rgba(25,230,140,.35)}
+.sbadge.fan{background:linear-gradient(90deg,#990000,#cc2a2a);color:#fff}
 .sbadge.low{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--line2)}
 .sdots{display:inline-flex;gap:3px;align-items:center}
 .sdots i{width:7px;height:7px;border-radius:2px;background:rgba(255,255,255,.1)}
@@ -1159,7 +1160,8 @@ function betLine(b, open, d){
   var watch = b.kind === "watch"; if (watch) p._watch = true;
   var sg = strength(p, slip);
   if (watch) ty = '<span class="ty wt">Watch · 0u</span>' + (p.legs_detail && p.legs_detail.length ? '<span class="ty par">' + esc(slipType(p)[1]) + "</span>" : "");
-  var tags = (watch ? "" : sbadge(sg)) + ty + q(p.anchor_quality) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "");
+  var fan = (p.tags || []).indexOf("hoosier_fan") >= 0;
+  var tags = (watch ? "" : fan ? '<span class="sbadge fan">IU fan bet</span>' : sbadge(sg)) + ty + q(p.anchor_quality) + (grade && grade !== "core" ? '<span class="gtag">' + esc(grade) + "</span>" : "");
   var body;
   if (slip || (watch && p.legs_detail && p.legs_detail.length)) { var ld = p.legs_detail || [], fair = legFair(p, d); var legs = ld.length ? ld.map(function(l){ var sel = plain(l.selection || ""), key = sel.split(/\s+(?:over|under)\b/i)[0].trim().split(/\s+/).pop().toLowerCase(), fp = num(l.fair_prob) != null ? num(l.fair_prob) : fair[key]; if (fp != null && fp <= 1) fp *= 100; return [sel, (l.price_american != null ? fO(num(l.price_american)) : "") + (fp != null ? " · " + fp.toFixed(0) + "%" : "")]; }) : legsOf(p).map(function(l){ return [l, ""]; }); body = '<ul class="lgs">' + legs.map(function(l){ return "<li><span>" + esc(l[0]) + '</span><span class="lp">' + esc(l[1]) + "</span></li>"; }).join("") + "</ul>"; }
   else body = '<div class="ttl">' + esc(shortB(p.bet, p.matchup)) + "</div>";
@@ -1168,7 +1170,7 @@ function betLine(b, open, d){
   var bar = model != null ? '<div class="cbar' + (good ? " pos" : "") + '" title="model ' + model.toFixed(1) + "% vs break-even " + (bev != null ? bev.toFixed(1) : "?") + '%"><i style="width:' + Math.max(2, Math.min(100, model)).toFixed(1) + '%"></i>' + (bev != null ? '<b style="left:calc(' + Math.min(100, bev).toFixed(1) + '% - 1px)"></b>' : "") + "</div>" : "";
   return '<div class="br2" data-b="' + b.k + '" tabindex="0" aria-expanded="' + open + '"><div style="min-width:0"><div class="tg">' + tags + "</div>" + body + "</div>" +
     '<div class="rt"><div class="odds">' + (pa != null ? fO(pa) : esc(plain(p.price || "—"))) + '</div>' + (watch ? '<div class="stk">not staked</div>' + (r === "OPEN" ? "" : '<span class="status ' + (r === "WIN" ? "st-win" : r === "LOSS" ? "st-loss" : "st-push") + '">' + (r === "WIN" ? "✓ " : r === "LOSS" ? "✕ " : "") + "paper " + (num(p.paper_units) != null ? fU(p.paper_units) : r.toLowerCase()) + "</span>") : '<div class="stk"><b>' + (st != null ? st + "u" : "—") + "</b>" + (win != null && r === "OPEN" ? " → " + win.toFixed(2) : "") + "</div>" + (r === "OPEN" ? "" : stat(r, p.units))) + "</div>" +
-    '<div class="ft">' + bar + (model != null ? '<span class="ftx"><span class="' + (good ? "pos" : "neg") + '">' + model.toFixed(1).replace(/\.0$/, "") + "%</span>" + (bev != null ? " vs " + bev.toFixed(0) + "% BE" : "") + "</span>" : "") + (ev != null ? '<span class="evc ' + (ev > 0.05 ? "pos" : ev < -0.05 ? "neg" : "z") + '">' + fP(ev) + " EV</span>" : "") + (p.book ? '<span class="bk2">' + esc(p.book) + "</span>" : "") + (watch ? '<span class="bk2">' + esc(p.reason ? String(p.reason).replace(/_/g, " ") : "no edge") + "</span>" : sdots(sg)) + "</div></div>";
+    '<div class="ft">' + bar + (model != null ? '<span class="ftx"><span class="' + (good ? "pos" : "neg") + '">' + model.toFixed(1).replace(/\.0$/, "") + "%</span>" + (bev != null ? " vs " + bev.toFixed(0) + "% BE" : "") + "</span>" : "") + (ev != null ? '<span class="evc ' + (ev > 0.05 ? "pos" : ev < -0.05 ? "neg" : "z") + '">' + fP(ev) + " EV</span>" : "") + (num(p.margin_vs_line) != null && r !== "OPEN" ? '<span class="evc ' + (num(p.margin_vs_line) > 0 ? "pos" : num(p.margin_vs_line) < 0 ? "neg" : "z") + '" title="how far the result landed from the line, in the bet\'s favour">by ' + (num(p.margin_vs_line) > 0 ? "+" : "") + num(p.margin_vs_line) + "</span>" : "") + (p.book ? '<span class="bk2">' + esc(p.book) + "</span>" : "") + (watch ? '<span class="bk2">' + esc(p.reason ? String(p.reason).replace(/_/g, " ") : "no edge") + "</span>" : sdots(sg)) + "</div></div>";
 }
 function betExpand(b, d){
   var p = b.p;

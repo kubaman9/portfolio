@@ -15,6 +15,7 @@ tipsters outside cappers' logged picks (tipster_picks) graded and priced the sam
 watch    0u watch picks (watch_picks) graded at a notional 1u, mirrored to that day's
          dashboard_days.watch[]; paper scoreboard in watch_stats/current. Never in the record.
 patterns player_patterns history checks matched to their graded prop (single or slip leg).
+margins  backfill margin_vs_line (signed, in the bet's favour) on graded picks and slip legs.
 close    ESPN closing line + CLV for graded single game-level picks with clv null.
 audit    re-grade picks graded in the last 7 days; disagreements go to grade_audit
          (the daily run must apply them) -- nothing graded is silently rewritten.
@@ -119,7 +120,7 @@ def write_back(db, pick, upd):
             if norm(p.get("bet")) == norm(pick.get("bet")):
                 put(p, "result", upd["result"])
                 put(p, "units", upd["units"])
-                for k in ("final_score", "clv", "close"):
+                for k in ("final_score", "clv", "close", "margin_vs_line"):
                     if k in upd:
                         put(p, k, upd[k])
     if changed:
@@ -438,6 +439,37 @@ def step_watch(db):
                                                                  note="paper record at 1u per pick; never part of the ledger",
                                                                  updated_at=ISO)}, upsert=True)
     log(f"watch: {graded} watch picks graded, {priced} priced at the close, {len(rows)} graded in total")
+
+
+def step_margins(db, limit=150):
+    """Backfill margin_vs_line (V18.7 margin grading) on picks graded before it existed,
+    and on hand-graded picks: re-grade with the same code, keep the original result,
+    and write only the margin fields. Capped per run so ESPN is not hammered; a pick is
+    tried once (margin_tried) whether or not a margin comes back."""
+    done = tried = 0
+    q = {"result": {"$in": ["WIN", "LOSS", "PUSH"]}, "margin_tried": {"$ne": True}, "date": {"$gte": FIRST_LIVE_DAY}}
+    for p in db.picks.find(q).sort("date", -1).limit(limit):
+        tried += 1
+        upd = {"margin_tried": True}
+        try:
+            g = grade_pick(dict(p, result="OPEN", stake_units=p.get("stake_units") or 1,
+                                legs=[dict(l, status="OPEN") for l in (p.get("legs") or [])] or None))
+        except Exception as e:
+            log(f"  margin error on {p.get('bet')!r}: {type(e).__name__}")
+            g = None
+        if g:
+            if g.get("margin_vs_line") is not None:
+                upd["margin_vs_line"] = g["margin_vs_line"]
+                done += 1
+            if p.get("legs") and g.get("legs"):
+                legs = p["legs"]
+                for i, nl in enumerate(g["legs"]):
+                    if i < len(legs) and nl.get("margin_vs_line") is not None:
+                        legs[i]["margin_vs_line"] = nl["margin_vs_line"]
+                upd["legs"] = legs
+                done += any(l.get("margin_vs_line") is not None for l in legs)
+        db.picks.update_one({"_id": p["_id"]}, {"$set": upd})
+    log(f"margins: {done} of {tried} graded picks got margin_vs_line")
 
 
 def step_patterns(db):
@@ -825,8 +857,8 @@ def step_enrich(db):
 
 STEPS = {"enrich": step_enrich, "grade": step_grade, "sync": step_sync, "close": step_close, "audit": step_audit,
          "summary": step_summary, "prekick": step_prekick, "tipsters": step_tipsters,
-         "watch": step_watch, "patterns": step_patterns}
-DEFAULT = ["grade", "sync", "close", "tipsters", "watch", "patterns", "audit", "enrich", "summary"]
+         "watch": step_watch, "patterns": step_patterns, "margins": step_margins}
+DEFAULT = ["grade", "sync", "close", "tipsters", "watch", "patterns", "margins", "audit", "enrich", "summary"]
 
 
 def run_steps(db, steps):

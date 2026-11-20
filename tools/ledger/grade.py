@@ -152,6 +152,20 @@ def parse(text, market, bet_type, sport):
 
 def outcome(spec, ev, sport, sport_key, league):
     """WIN/LOSS/PUSH for one parsed selection on a final event, or None."""
+    return outcome_margin(spec, ev, sport, sport_key, league)[0]
+
+
+def outcome_margin(spec, ev, sport, sport_key, league):
+    """(result, margin_vs_line) for one parsed selection on a final event.
+    margin_vs_line is signed in the bet's favour: +3.5 means the side beat its line by
+    3.5 (covered by 3.5, total landed 3.5 on the right side, the player cleared his prop
+    by 3.5, the moneyline side won by 3.5); negative means it fell short by that much.
+    None where a margin means nothing (anytime scorer/assist) or the stat is missing."""
+    res, m = _outcome_margin(spec, ev, sport, sport_key, league)
+    return res, (round(m, 2) if isinstance(m, (int, float)) and res else None)
+
+
+def _outcome_margin(spec, ev, sport, sport_key, league):
     comps = competitors(ev)
     if spec["kind"] in ("scorer", "assist"):
         summ = summary(sport_key, league, ev["id"])
@@ -168,8 +182,8 @@ def outcome(spec, ev, sport, sport_key, league):
                 continue
             parts = k.get("participants") or []
             if len(parts) > idx and norm((parts[idx].get("athlete") or {}).get("displayName")) == who:
-                return "WIN"
-        return "LOSS" if played else None  # did not play: void, leave for the run
+                return "WIN", None
+        return ("LOSS" if played else None), None  # did not play: void, leave for the run
     if spec["kind"] == "prop":
         summ = summary(sport_key, league, ev["id"])
         if spec["stat"] == ("batting", "TB"):
@@ -179,29 +193,34 @@ def outcome(spec, ev, sport, sport_key, league):
         else:
             val = player_stat(summ, spec["player"], spec["stat"])
         if val is None:
-            return None  # DNP / name mismatch: leave it for a human-grade
+            return None, None  # DNP / name mismatch: leave it for a human-grade
+        if spec["stat"] == "ANYTD":
+            m = None
+        else:
+            m = (val - spec["line"]) * (1 if spec["side"] == "over" else -1)
         if val == spec["line"]:
-            return "PUSH"
+            return "PUSH", 0
         over = val > spec["line"]
-        return "WIN" if over == (spec["side"] == "over") else "LOSS"
+        return ("WIN" if over == (spec["side"] == "over") else "LOSS"), m
     scores = [score_of(c) for c in comps]
     if None in scores:
-        return None
+        return None, None
     if spec["kind"] == "total":
         tot = sum(scores)
+        m = (tot - spec["line"]) * (1 if spec["side"] == "over" else -1)
         if tot == spec["line"]:
-            return "PUSH"
-        return "WIN" if (tot > spec["line"]) == (spec["side"] == "over") else "LOSS"
+            return "PUSH", 0
+        return ("WIN" if (tot > spec["line"]) == (spec["side"] == "over") else "LOSS"), m
     i = team_in_text(spec["text"], comps)
     if i is None:
-        return None
+        return None, None
     mine, theirs = scores[i], scores[1 - i]
     if spec["kind"] == "ml":
         if mine == theirs:
-            return "LOSS" if sport == "Soccer" else "PUSH"
-        return "WIN" if mine > theirs else "LOSS"
+            return ("LOSS" if sport == "Soccer" else "PUSH"), 0
+        return ("WIN" if mine > theirs else "LOSS"), mine - theirs
     margin = mine + spec["point"] - theirs
-    return "PUSH" if margin == 0 else ("WIN" if margin > 0 else "LOSS")
+    return ("PUSH" if margin == 0 else ("WIN" if margin > 0 else "LOSS")), margin
 
 
 def event_for_key(sport, game_key, hint):
@@ -299,7 +318,9 @@ def grade_pick(p):
                 found = event_for_key(sport, leg.get("game_key"), hint)
                 st = None
                 if spec and found and event_state(found[2])["final"]:
-                    st = outcome(spec, found[2], sport, found[0], found[1])
+                    st, lm = outcome_margin(spec, found[2], sport, found[0], found[1])
+                    if st and lm is not None:
+                        leg["margin_vs_line"] = lm
                 if st:
                     leg["status"] = st
                     notes.append(f"{leg.get('selection')}: {st}")
@@ -337,11 +358,14 @@ def grade_pick(p):
     sk, lg, ev = found
     if not event_state(ev)["final"]:
         return None
-    res = outcome(spec, ev, sport, sk, lg)
+    res, margin = outcome_margin(spec, ev, sport, sk, lg)
     if not res:
         return None
-    return {"result": res, "units": units_for(res, stake, dec), "final_score": final_score_text(ev),
-            "_espn": (sk, lg, ev["id"])}
+    upd = {"result": res, "units": units_for(res, stake, dec), "final_score": final_score_text(ev),
+           "_espn": (sk, lg, ev["id"])}
+    if margin is not None:
+        upd["margin_vs_line"] = margin
+    return upd
 
 
 def fair_prob(mine, others):
